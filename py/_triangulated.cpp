@@ -94,7 +94,12 @@ int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol,
 				throw std::runtime_error("Triangulation of capsules is (for internal and entirely fixable reasons) only available when compiled with the 'vtk' features.");
 			#endif
 		}
+		// workaround internal assertion error in ICC 15.0.2 due to lambda in the default value
+		#ifndef __INTEL_COMPILER
 		auto writeFacets=[&](const Vector3r& off, std::function<bool(const Vector3r&)> clip=std::function<bool(const Vector3r&)>([](const Vector3r&){ return false; })) {
+		#else
+			auto writeFacets=[&](const Vector3r& off, std::function<bool(const Vector3r&)> clip) {
+		#endif
 			for(const Vector3i& t: tri){
 				Vector3r pp[]={pts[t[0]]+off,pts[t[1]]+off,pts[t[2]]+off};
 				// skip triangles which are entirely out of the clipping box (e.g. periodic cell)
@@ -110,7 +115,11 @@ int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol,
 				stl<<"  endfacet\n";
 			};
 		};
-		if(!scene->isPeriodic) writeFacets(/*off*/Vector3r::Zero());
+		#ifndef __INTEL_COMPILER
+			if(!scene->isPeriodic) writeFacets(/*off*/Vector3r::Zero());
+		#else
+			if(!scene->isPeriodic) writeFacets(/*off*/Vector3r::Zero(),std::function<bool(const Vector3r&)>([](const Vector3r&){ return false; }));
+		#endif
 		else{
 			// make sure we have aabb, in skewed coords and such
 			if(!p->shape->bound){
@@ -134,7 +143,11 @@ int spheroidsToSTL(const string& out, const shared_ptr<DemField>& dem, Real tol,
 				//cerr<<"  boxOff="<<boxOff.min()<<";"<<boxOff.max()<<" | cell="<<cell.min()<<";"<<cell.max()<<endl;
 				if(boxOff.intersection(cell).isEmpty()) continue;
 				//cerr<<"  WRITE"<<endl;
-				if(!clipCell) writeFacets(dx);
+				#ifndef __INTEL_COMPILER
+					if(!clipCell) writeFacets(dx);
+				#else
+					if(!clipCell) writeFacets(dx,std::function<bool(const Vector3r&)>([](const Vector3r&){ return false; }));
+				#endif
 				else writeFacets(dx,[&](const Vector3r& p){ return !scene->cell->isCanonical(p); });
 			}
 		}

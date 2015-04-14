@@ -137,6 +137,11 @@ struct Scene: public Object{
 		// expand {tagName} in given string
 		string expandTags(const string& s) const;
 
+		#ifdef WOO_OPENGL
+			#define woo_core_Scene__DisplayParameters__OPENGL /*WOO_OPENGL*/ ((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>().noGui(),"'hash maps' of display parameters (since woo::serialization had no support for maps, emulate it via vector of strings in format key=value)"))
+		#else
+			#define woo_core_Scene__DisplayParameters__OPENGL
+		#endif
 
 	#define woo_core_Scene__CLASS_BASE_DOC_ATTRS_INI_CTOR_DTOR_PY \
 		Scene,Object,ClassTrait().doc("Object comprising the whole simulation.").section("Scene","TODO",{"SceneAttachedObject","Field","LabelMapper","Cell","EnergyTracker"}) \
@@ -175,7 +180,7 @@ struct Scene: public Object{
 		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic.")) \
 		((std::string,lastSave,,AttrTrait<Attr::readonly>(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change.")) \
 		((long,preSaveDuration,,AttrTrait<Attr::readonly>().noGui(),"Wall clock duration this Scene was alive before being saved last time; this count is incremented every time the scene is saved. When Scene is loaded, it is used to construct clock0 as current_local_time - lastSecDuration.")) \
-		/*WOO_OPENGL*/ ((vector<shared_ptr<DisplayParameters>>,dispParams,,AttrTrait<Attr::hidden>().noGui(),"'hash maps' of display parameters (since woo::serialization had no support for maps, emulate it via vector of strings in format key=value)")) \
+		woo_core_Scene__DisplayParameters__OPENGL \
 		((vector<shared_ptr<ScalarRange>>,ranges,,,"Scalar ranges to be rendered on the display as colormaps")) \
 		((vector<shared_ptr<Object>>,any,,,"Storage for arbitrary Objects; meant for storing and loading static objects like Gl1_* functors to restore their parameters when scene is loaded.")) \
 		((py::object,pre,,AttrTrait<>().noGui(),"Preprocessor used for generating this simulation; to be only used in user scripts to query preprocessing parameters, not in c++ code.")) \
