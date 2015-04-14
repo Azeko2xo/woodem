@@ -110,7 +110,7 @@ tikz_tikzlibraries=''
 disqus_shortname='woodem'
 rst_epilog='\n\n.. disqus::\n\n'
 
-extlinks={'woosrc':('http://bazaar.launchpad.net/~eudoxos/woo/trunk/view/head:/%s','')}
+extlinks={'woosrc':('https://github.com/eudoxos/woodem/tree/master/%s','')}
 
 ## customize mathjax
 ## hack from https://bitbucket.org/birkenfeld/sphinx/issue/969/allow-mathjax-customization-via-localjs 

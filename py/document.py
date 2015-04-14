@@ -113,7 +113,9 @@ def guessInstanceTypeFromCxxType(klass,trait,noneOnFail=False):
 		cT=m.group(2)
 		logging.debug('%s: got c++ base type: %s -> %s'%(wHead,trait.cxxType,cT))
 		klasses=[c for c in woo.system.childClasses(woo.core.Object,includeBase=True) if c.__name__==cT]
-		if len(klasses)==0: logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,cT,trait.cxxType))
+		if len(klasses)==0:
+			if noneOnFail: return None
+			logging.warn('%s: no Python type object with name %s found (cxxType=%s)'%(wHead,cT,trait.cxxType))
 		elif len(klasses)>1: logging.warn('%s: multiple Python types with name %s found (cxxType=%s): %s'%(wHead,cT,trait.cxxType,', '.join([c.__module__+'.'+c.__name__ for c in klasses])))
 		else: return klasses[0]
 	if noneOnFail: return None
@@ -184,6 +186,8 @@ def makeTraitInfo(obj,klass,trait):
 			if val.__class__.__module__=='minieigen': tt=':obj:`%s <minieigen:minieigen.%s>`'%(val.__class__.__name__,val.__class__.__name__)
 			else: tt=trait.cxxType
 		if not tt:
+			if trait.cxxType in ('int','bool','Real','long','size_t','ContainerT','PendingContact','list<id_t>','shared_ptr<SpherePack>','list<id_t>','boost_multi_array_real_5','py::object'): tt=trait.cxxType
+		if not tt:
 			l=guessListTypeFromCxxType(klass,trait,warnFail=False)
 			if l: tt=trait.cxxType.replace(l[0].__name__,':obj:`%s <%s.%s>`'%(l[0].__name__,l[0].__module__,l[0].__name__))
 		if not tt:
@@ -216,7 +220,43 @@ def makeTraitInfo(obj,klass,trait):
 	
 def classSrcHyperlink(klass):
 	'Return ReST-formatted line with hyperlinks to class headers (and implementation, if the corresponding .cpp file exists).'
-	import woo.config
+	def findFirstLine(ff,pattern,regex=True):
+		if regex: pat=re.compile(pattern)
+		if not os.path.exists(ff): return -1
+		numLines=[i for i,l in enumerate(file(ff).readlines()) if (pat.match(l) if regex else (l==pattern))]
+		return (numLines[0] if numLines else -1)
+
+	import woo.config, inspect, os, hashlib
+	pysrc=inspect.getsourcefile(klass)
+	if pysrc: # python class
+		lineNo=inspect.getsourcelines(klass)[1]
+		pysrc1=os.path.basename(pysrc)
+		# locate the file in the source tree (as a quick hack, just use filename match)
+		matches=[]
+		for root,dirnames,filenames in os.walk(woo.config.sourceRoot):
+			relRoot=root[len(woo.config.sourceRoot)+1:]
+			if relRoot.startswith('build') or relRoot.startswith('debian'): continue # garbage
+			matches+=[relRoot+'/'+f for f in filenames if f==pysrc1]
+		if len(matches)>1:
+			#print 'WARN: multiple files named %s, using the first one: %s'%(pysrc1,str(matches))
+			md0=hashlib.md5(open(pysrc).read()).hexdigest()
+			matches=[m for m in matches if hashlib.md5(open(woo.config.sourceRoot+'/'+m).read()).hexdigest()==md0]
+			if len(matches)==0:
+				print 'WARN: no file named %s with matching md5 digest found in source tree?'%pysrc1
+				return None
+			elif len(matches)>1:
+				print 'WARN: multiple files named %s with the same md5 found in the source tree, using the one with shortest path.'%pysrc1
+				matches.sort(key=len)
+				match=matches[0]
+			else: match=matches[0]
+		elif len(matches)==1: match=matches[0]
+		else:
+			print 'WARN: no python source %s found.'%(pysrc1)
+			return None
+		return '[:woosrc:`%s <%s#L%s>`]'%(match,match,lineNo)
+
+
+		
 	if not klass._classTrait: return None
 	f=klass._classTrait.file
 	if f.startswith(woo.config.sourceRoot): commonRoot=woo.config.sourceRoot
@@ -226,22 +266,36 @@ def classSrcHyperlink(klass):
 		print 'File where class is defined (%s) does not start with source root (%s) or build root (%s)'%(f,woo.config.sourceRoot,woo.config.buildRoot)
 		return None
 	# +1 removes underscore in woo/...
-	f2=f[len(commonRoot)+1:] 
+	f2=f[len(commonRoot)+(1 if commonRoot else 0):] 
 	# if this header was copied into include/, get rid of that now
 	m=re.match('include/woo/(.*)',f2)
 	if m: f2=m.group(1)
-	ret=[':woosrc:`header <%s#L%d>`'%(f2,klass._classTrait.line)]
-	if f2.endswith('.hpp'):
-		cpp=woo.config.sourceRoot+'/'+f2[:-4]+'.cpp'
-		# print 'Trying ',cpp
-		if os.path.exists(cpp):
-			# find first line in the cpp file which contains KlassName:: -- that's most likely where the implementation begins
-			numLines=[i for i,l in enumerate(file(cpp).readlines()) if klass.__name__+'::' in l]
-			if numLines: ret.append(':woosrc:`implementation <%s#L%d>`'%(f2[:-4]+'.cpp',numLines[0]+1))
-			# return just the cpp file if the implementation is probably not there at all?
-			# don't do it for now
-			# else: ret.append(':woosrc:`implementation <%s#L>`'%(f2[:-4]+'.cpp'))
-	return '[ '+' , '.join(ret)+' ]'
+	if f2.endswith('.hpp'): hpp,cpp,lineIs=f2,f2[:-4]+'.cpp','hpp'
+	elif f2.endswith('.cpp'): hpp,cpp,lineIs=f2[:-4]+'.hpp',f2,'cpp'
+	else: return None # should not happen, anyway
+
+	hppLine=findFirstLine(woo.config.sourceRoot+'/'+hpp,r'^(.*\s)?(struct|class)\s+%s\s*({|:).*$'%klass.__name__)
+	cppLine=findFirstLine(woo.config.sourceRoot+'/'+cpp,r'^(.*\s)?%s::.*$'%klass.__name__)
+	ret=[]
+	if hppLine>0: ret+=['header :woosrc:`%s <%s#L%d>`'%(hpp,hpp,hppLine+1)]
+	else:
+		if f2.endswith('.hpp'): ret+=[':woosrc:`%s <%s#L%d>`'%(hpp,hpp,klass._classTrait.line)]
+		else: print 'WARN: No header line found for %s in %s'%(klass.__name__,hpp)
+	if cppLine>0: ret+=[':woosrc:`%s <%s#L%d>`'%(cpp,cpp,cppLine+1)]
+	else: pass # print 'No impl. line found for %s in %s'%(klass.__name__,cpp)
+	#ret=[':woosrc:`header <%s#L%d>`'%(f2,klass._classTrait.line)]
+	#if f2.endswith('.hpp'):
+	#	cpp=woo.config.sourceRoot+'/'+f2[:-4]+'.cpp'
+	#	# print 'Trying ',cpp
+	#	if os.path.exists(cpp):
+	#		# find first line in the cpp file which contains KlassName:: -- that's most likely where the implementation begins
+	#		numLines=[i for i,l in enumerate(file(cpp).readlines()) if klass.__name__+'::' in l]
+	#		if numLines: ret.append(':woosrc:`implementation <%s#L%d>`'%(f2[:-4]+'.cpp',numLines[0]+1))
+	#		# return just the cpp file if the implementation is probably not there at all?
+	#		# don't do it for now
+	#		# else: ret.append(':woosrc:`implementation <%s#L>`'%(f2[:-4]+'.cpp'))
+	if ret: return '[ '+' , '.join(ret)+' ]'
+	else: return None
 
 def classDocHierarchy_topsAndDict(mod):
 	'Return tuple containing list of top-level class objects, and dictionary which maps all module-contained class objects to classes which should be documented under it (derived classes, and doc-related classes specified via ClassTrait.section'
