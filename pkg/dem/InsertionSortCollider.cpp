@@ -586,7 +586,7 @@ void InsertionSortCollider::run(){
 				LOG_DEBUG("Initial std::sort over all axes");
 				for(int i:{0,1,2}) {
 					BB[i].loIdx=0;
-					#if defined(WOO_OPENMP) && defined(__GNUC__)
+					#if defined(WOO_OPENMP) && defined(__GNUC__) && /*this one crashes here, why..? */ !defined(__INTEL_COMPILER) 
 						__gnu_parallel::sort(BB[i].vec.begin(),BB[i].vec.end());
 					#else
 						std::sort(BB[i].vec.begin(),BB[i].vec.end());

@@ -250,13 +250,19 @@ if len(sys.argv)>1 and ('clean' in sys.argv) or ('tags' in sys.argv) or ('doc' i
 ############# CONFIGURATION ##############################################################
 ##########################################################################################
 
+
 # ensure non-None
 env.Append(CPPPATH='',LIBPATH='',LIBS='',CXXFLAGS=('-std='+env['cxxstd'] if env['cxxstd'] else ''),SHCCFLAGS='',SHLINKFLAGS='')
 
+# guess which compiler we use, for compiler-specific things
+clang=('clang' in env['CXX'])
+intel=('icc' in env['CXX'] or 'icpc' in env['CXX'])
+gcc=('gcc' in env['CXX'] or 'g++' in env['CXX'])
+
+
 def CheckCXX(context):
 	# see http://llvm.org/bugs/show_bug.cgi?id=13530#c3, workaround number 4.
-	if 'clang' in context.env['CXX']:
-		context.env.Append(CPPDEFINES={'__float128':'void'})
+	if clang: context.env.Append(CPPDEFINES={'__float128':'void'})
 	context.Message('Checking whether c++ compiler "%s %s" works...'%(env['CXX'],' '.join(env['CXXFLAGS'])))
 	ret=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
 	context.Result(ret)
@@ -264,11 +270,12 @@ def CheckCXX(context):
 	# binutils now require us to select gold explicitly (see https://launchpad.net/ubuntu/saucy/+source/binutils/+changelog)
 	# this option adds this to gcc and is hopefully backwards-compatible as to not break other builds
 	prev=env['LINKFLAGS']
-	env.Append(LINKFLAGS='-fuse-ld=gold')
-	ret2=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
-	if not ret2:
-		print '(-fuse-ld=gold not supported by the compiler, make sure that gold is used yourself)'
-		env.Replace(LINKFLAGS=prev)
+	if not intel:
+		env.Append(LINKFLAGS='-fuse-ld=gold')
+		ret2=context.TryLink('#include<iostream>\nint main(int argc, char**argv){std::cerr<<std::endl;return 0;}\n','.cpp')
+		if not ret2:
+			print '(-fuse-ld=gold not supported by the compiler, make sure that gold is used yourself)'
+			env.Replace(LINKFLAGS=prev)
 	return ret
 
 def CheckPython(context):
@@ -476,11 +483,16 @@ else:
 ### PREPROCESSOR FLAGS
 if env['QUAD_PRECISION']: env.Append(CPPDEFINES='QUAD_PRECISION')
 
+
 ### COMPILER
-if env['debug']: env.Append(CXXFLAGS='-ggdb2',CPPDEFINES=['WOO_DEBUG'])
+if env['debug']:
+	if intel: env.Append(CXXFLAGS='-g2',CPPDEFINES=['WOO_DEBUG'])
+	else: env.Append(CXXFLAGS='-ggdb2',CPPDEFINES=['WOO_DEBUG'])
 # NDEBUG is used in /usr/include/assert.h: when defined, asserts() are no-ops
 else: env.Append(CPPDEFINES=['NDEBUG'])
-if 'openmp' in env['features']: env.Append(CXXFLAGS='-fopenmp',LIBS='gomp',CPPDEFINES='WOO_OPENMP')
+if 'openmp' in env['features']:
+	env.Append(CXXFLAGS='-fopenmp',LIBS='gomp',CPPDEFINES='WOO_OPENMP')
+	if intel: env.Append(SHLINKFLAGS='-openmp')
 if env['optimize']:
 	env.Append(CXXFLAGS=['-O%d'%env['optimize']])
 	# do not state architecture if not provided
@@ -490,9 +502,10 @@ if env['optimize']:
 else:
 	pass
 
+
 if env['lto']:
 	env.Append(CXXFLAGS='-flto',CFLAGS='-flto')
-	if 'clang' in env['CXX']: env.Append(SHLINKFLAGS=['-use-gold-plugin','-O3','-flto'])
+	if clang: env.Append(SHLINKFLAGS=['-use-gold-plugin','-O3','-flto'])
 	else: env.Append(SHLINKFLAGS=['-fuse-linker-plugin','-O3','-flto=%d'%env['jobs']])
 
 if env['gprof']: env.Append(CXXFLAGS=['-pg'],LINKFLAGS=['-pg'],SHLINKFLAGS=['-pg'])
@@ -501,10 +514,12 @@ env.Prepend(CXXFLAGS=['-pipe','-Wall'])
 if env['PGO']=='gen': env.Append(CXXFLAGS=['-fprofile-generate'],LINKFLAGS=['-fprofile-generate'])
 if env['PGO']=='use': env.Append(CXXFLAGS=['-fprofile-use'],LINKFLAGS=['-fprofile-use'])
 
-if 'clang' in env['CXX']:
+if clang:
 	print 'Looks like we use clang, adding some flags to avoid warning flood.'
 	env.Append(CXXFLAGS=['-Qunused-arguments','-Wno-empty-body','-Wno-self-assign'])
-if 'g++' in env['CXX']:
+if intel:
+	env.Append(CXXFLAGS=['-Wno-deprecated'])
+if gcc:
 	ver=os.popen('LC_ALL=C '+env['CXX']+' --version').readlines()[0].split()[-1]
 	if ver.startswith('4.6'):
 		print 'Using gcc 4.6, adding -pedantic to avoid ICE at string initializer_list (http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50478)'
