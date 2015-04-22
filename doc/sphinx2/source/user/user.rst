@@ -12,6 +12,6 @@ User's manual
    visualization.rst
    flow-analysis.rst
    clump.rst
-   shape-pack.rst
+   shapepack.rst
    yade-diff.rst
 
