@@ -66,6 +66,8 @@ Packings
 
 Packings contain purely geometrical information about particles, without material properties, velocity or anything else.
 
+.. _tutorial-spherepack:
+
 :obj:`SpherePack <_packSpheres.SpherePack>`
 --------------------------------------------
 
@@ -115,6 +117,7 @@ Such file can be loaded into Woo again (see :obj:`~_packSphere.SpherePack.toSimu
 :obj:`~woo.dem.ShapePack`
 --------------------------
 
+
 :obj:`woo.dem.ShapePack` can contain any particles which support it (boundary particles are skipped) as it stores variable number of data for each particle.
 
 .. ipython::
@@ -153,6 +156,8 @@ The resulting file is a bit more complicated::
    17 Sphere 0.0668563 0.138768 0.724237 0.120268
    18 Sphere 0.167893 0.12529 0.729157 0.120268
 
+
+.. note:: :obj:`~woo.dem.ShapePack` is treated in detail in :ref:`user-shapepack`.
 
 Paraview
 ==========

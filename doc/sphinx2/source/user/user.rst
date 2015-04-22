@@ -3,14 +3,15 @@ User's manual
 ###################
 
 .. toctree::
-	:maxdepth: 2
-	
-	installation.rst
-	running.rst
-	batch.rst
-	postprocess.rst
-	visualization.rst
-	flow-analysis.rst
-	clump.rst
-	yade-diff.rst
+   :maxdepth: 2
+   
+   installation.rst
+   running.rst
+   batch.rst
+   postprocess.rst
+   visualization.rst
+   flow-analysis.rst
+   clump.rst
+   shape-pack.rst
+   yade-diff.rst
 
