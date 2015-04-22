@@ -903,7 +903,7 @@ class ObjectEditor(QFrame):
 		# determine entry type
 		if isinstance(val,list):
 			t=woo.document.guessListTypeFromCxxType(obj.__class__,trait,warnFail=True)
-			if not t and len(val)==0: t=(val[0].__class__,) # 1-tuple is list of the contained type
+			if not t and len(val)==1: t=(val[0].__class__,) # 1-tuple is list of the contained type
 			#if not t: raise RuntimeError('Unable to guess type of '+str(obj)+'.'+attr)
 		elif val.__class__ in _attributeGuessedTypeMap: t=_attributeGuessedTypeMap[val.__class__]
 		elif not isinstance(val,woo.core.Object) and val!=None: t=val.__class__
@@ -1006,7 +1006,7 @@ class ObjectEditor(QFrame):
 			if (T in _fundamentalEditorMap):
 				widget=SeqFundamentalEditor(self,getter,setter,T)
 				return widget
-			print 'No widget for (%s,) in %s.%s'(T.__name__,entry.obj.__class__.__name__,entry.name)
+			print 'No widget for (%s,) in %s.%s'%(T.__name__,entry.obj.__class__.__name__,entry.name)
 			return None
 		# a woo.Object
 		if issubclass(entry.T,Object) or entry.T==Object:

@@ -30,7 +30,7 @@ S.engines=DemField.minimalEngines(damping=.6)+[PyRunner(100,'addPlotData(S)')]
 #]
 
 S.lab.apa=AnisoPorosityAnalyzer()
-S.cell.nextGradV=Vector3(-.5,-.5,-.2).asDiagonal()
+S.cell.nextGradV=Vector3(-.5,0,0).asDiagonal()
 S.trackEnergy=True
 
 def addPlotData(S):

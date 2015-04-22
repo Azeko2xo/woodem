@@ -139,7 +139,7 @@ def guessListTypeFromCxxType(klass,trait,warnFail=False):
 	if 'opengl' in woo.config.features: from woo import gl
 	from woo import core
 	vecMap={
-		'bool':bool,'int':int,'long':int,'Body::id_t':long,'size_t':long,
+		'bool':bool,'int':int,'long':int,'Particle::id_t':int,'size_t':int,
 		'Real':float,'float':float,'double':float,
 		'Vector6r':Vector6,'Vector6i':Vector6i,'Vector3i':Vector3i,'Vector2r':Vector2,'Vector2i':Vector2i,
 		'Vector3r':Vector3,'Matrix3r':Matrix3,'Quaternionr':Quaternion,
