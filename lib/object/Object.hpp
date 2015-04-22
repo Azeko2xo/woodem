@@ -350,9 +350,9 @@ template<> struct _SerializeMaybe<false>{
 
 
 #define _REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec)  _WOO_BOOST_SERIALIZE_INLINE(thisClass,baseClass,attrs) public: \
-	void pySetAttr(const std::string& key, const py::object& value){BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,thisClass,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
-	/* return dictionary of all acttributes and values; deprecated attributes omitted */ py::dict pyDict(bool all=true) const { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,thisClass,attrs); ret.update(baseClass::pyDict(all)); return ret; } \
-	virtual void callPostLoad(void* addr){ baseClass::callPostLoad(addr); postLoad(*this,addr); }
+	void pySetAttr(const std::string& key, const py::object& value) WOO_CXX11_OVERRIDE {BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR,thisClass,attrs); BOOST_PP_SEQ_FOR_EACH(_PYSET_ATTR_DEPREC,thisClass,deprec); baseClass::pySetAttr(key,value); } \
+	/* return dictionary of all acttributes and values; deprecated attributes omitted */ py::dict pyDict(bool all=true) const WOO_CXX11_OVERRIDE { py::dict ret; BOOST_PP_SEQ_FOR_EACH(_PYDICT_ATTR,thisClass,attrs); ret.update(baseClass::pyDict(all)); return ret; } \
+	void callPostLoad(void* addr) WOO_CXX11_OVERRIDE { baseClass::callPostLoad(addr); postLoad(*this,addr); }
 
 
 // print warning about deprecated attribute; thisClass is type name, not string
@@ -393,8 +393,8 @@ template<> struct _SerializeMaybe<false>{
 	_REGISTER_ATTRIBUTES_DEPREC(thisClass,baseClass,attrs,deprec) \
 	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
-	/* python class registration */ virtual void pyRegisterClass() { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras); } \
-	virtual void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); // virtual ensures v-table for all classes 
+	/* python class registration */ void pyRegisterClass() WOO_CXX11_OVERRIDE { _PY_REGISTER_CLASS_BODY(thisClass,baseClass,classTrait,attrs,deprec,extras); } \
+	void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); // virtual ensures v-table for all classes 
 
 // attribute declaration
 #define _WOO_ATTR_DECL(x,thisClass,z) _ATTR_TYP(z) _ATTR_NAM(z);
@@ -423,7 +423,7 @@ template<> struct _SerializeMaybe<false>{
 #define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_TYP(z)(_ATTR_INI(z));
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs,pyExtra)\
-	virtual void pyRegisterClass() { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); WOO_SET_DOCSTRING_OPTS; \
+	void pyRegisterClass() WOO_CXX11_OVERRIDE { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); WOO_SET_DOCSTRING_OPTS; \
 		auto traitPtr=make_shared<ClassTrait>(classTrait); traitPtr->name(#thisClass).file(__FILE__).line(__LINE__); \
 		py::class_<thisClass,shared_ptr<thisClass>,py::bases<baseClass>,boost::noncopyable> _classObj(#thisClass,traitPtr->getDoc().c_str(),/*call raw ctor even for parameterless construction*/py::no_init); _classObj.def("__init__",py::raw_constructor(Object_ctor_kwAttrs<thisClass>)); \
 		_classObj.attr("_classTrait")=traitPtr; \
@@ -523,15 +523,15 @@ template<> struct _SerializeMaybe<false>{
 	/*class itself*/	REGISTER_CLASS_AND_BASE(thisClass,baseClass) \
 	/* attribute declarations*/ BOOST_PP_SEQ_FOR_EACH(_WOO_ATTR_DECL,thisClass,attrs) \
 	/*trait definitions*/ BOOST_PP_SEQ_FOR_EACH(_WOO_TRAIT_DEF,thisClass,attrs) \
-	/* later: call postLoad via ADL*/ public: virtual void callPostLoad(void* addr){ baseClass::callPostLoad(addr); postLoad(*this,addr); } \
+	/* later: call postLoad via ADL*/ public: void callPostLoad(void* addr) WOO_CXX11_OVERRIDE { baseClass::callPostLoad(addr); postLoad(*this,addr); } \
 	/* accessors for deprecated attributes, with warnings */ BOOST_PP_SEQ_FOR_EACH(_ACCESS_DEPREC,thisClass,deprec) \
 	/**follow pure declarations of which implementation is handled sparately**/ \
 	/*1. ctor declaration */ thisClass();\
 	/*2. dtor declaration */ virtual ~thisClass(); \
 	/*3. boost::serialization declarations */ _WOO_BOOST_SERIALIZE_DECL(thisClass,baseClass,attrs) \
-	/*4. set attributes from kw ctor */ protected: void pySetAttr(const std::string& key, const py::object& value); \
-	/*5. for pickling*/ py::dict pyDict(bool all=true) const; \
-	/*6. python class registration*/ virtual void pyRegisterClass(); \
+	/*4. set attributes from kw ctor */ protected: void pySetAttr(const std::string& key, const py::object& value) WOO_CXX11_OVERRIDE; \
+	/*5. for pickling*/ py::dict pyDict(bool all=true) const WOO_CXX11_OVERRIDE; \
+	/*6. python class registration*/ void pyRegisterClass() WOO_CXX11_OVERRIDE; \
 	/*7. ensures v-table; will be removed later*/ void must_use_both_WOO_CLASS_BASE_DOC_ATTRS_and_WOO_PLUGIN(); \
 	/*8.*/ void must_use_both_WOO_CLASS_DECLARATION_and_WOO_CLASS_IMPLEMENTATION(); \
 	public: /* make the rest public by default again */
@@ -558,9 +558,16 @@ template<> struct _SerializeMaybe<false>{
 
 
 /* this used to be in lib/factory/Factorable.hpp */
-#define REGISTER_CLASS_AND_BASE(cn,bcn) REGISTER_CLASS_NAME(cn); REGISTER_BASE_CLASS_NAME({#bcn});
-#define REGISTER_CLASS_NAME(cn) public: virtual std::string getClassName() const { return #cn; };
-#define REGISTER_BASE_CLASS_NAME(bcn) public:virtual std::vector<std::string> getBaseClassNames() const { return bcn; }
+#define REGISTER_CLASS_AND_BASE(cn,bcn) public: virtual string getClassName() const WOO_CXX11_OVERRIDE { return #cn; }; public: virtual vector<string> getBaseClassNames() const WOO_CXX11_OVERRIDE { return {#bcn}; }
+
+#if 0
+	# REGISTER_CLASS_NAME(cn); REGISTER_BASE_CLASS_NAME({#bcn});
+	#define REGISTER_CLASS_NAME(cn) 
+	#define REGISTER_BASE_CLASS_NAME(bcn) 
+#endif
+
+// this is used only in Obejct declaration itself below
+#define WOO_TOPLEVEL_OBJECT_REGISTER_CLASS_BASE(cn,bcn) public: virtual string getClassName() const {return #cn;}; virtual vector<string> getBaseCLassNames() const {return #bcn; }
  
 namespace woo{
 
@@ -606,11 +613,11 @@ struct Object: public boost::noncopyable, public boost::enable_shared_from_this<
 		
 		//! string representation of this object
 		virtual std::string pyStr() const { return "<"+getClassName()+" @ "+boost::lexical_cast<string>(this)+">"; }
+	
+	// overridden by REGISTER_CLASS_BASE_BASE in derived classes
+	virtual string getClassName() const { return "Object"; }
+	virtual vector<string> getBaseClassNames() const{ return {}; }
 
-	//REGISTER_CLASS_AND_BASE(Object,);
-	REGISTER_CLASS_NAME(Object);
-	// this might disappear in the future
-	REGISTER_BASE_CLASS_NAME({});
 	std::string getBaseClassName(unsigned int i=0) const { std::vector<std::string> bases(getBaseClassNames()); return (i>=bases.size()?std::string(""):bases[i]); } 
 	int getBaseClassNumber(){ return getBaseClassNames().size(); }
 };

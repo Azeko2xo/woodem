@@ -9,7 +9,7 @@ class GLUquadric;
 class Gl1_CPhys: public GlCPhysFunctor{	
 		static GLUquadric* gluQuadric; // needed for gluCylinder, initialized by ::go if no initialized yet
 	public:
-		virtual void go(const shared_ptr<CPhys>&,const shared_ptr<Contact>&, const GLViewInfo&);
+		virtual void go(const shared_ptr<CPhys>&,const shared_ptr<Contact>&, const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_CPhys,GlCPhysFunctor,"Renders :obj:`CPhys` objects as cylinders of which diameter and color depends on :obj:`CPhys:force` normal (:math:`x`) component.",
 		((shared_ptr<ScalarRange>,range,make_shared<ScalarRange>(),,"Range for normal force"))
 		((shared_ptr<ScalarRange>,shearRange,make_shared<ScalarRange>(),,"Range for absolute value of shear force"))

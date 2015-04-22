@@ -61,7 +61,7 @@ struct Particle: public Object{
 	#endif
 	void setRefPos(const Vector3r&);
 	std::vector<shared_ptr<Node> > getNodes();
-	virtual string pyStr() const { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
+	virtual string pyStr() const WOO_CXX11_OVERRIDE { return "<Particle #"+to_string(id)+" @ "+lexical_cast<string>(this)+">"; }
 	int countRealContacts() const;
 	void postLoad(Particle&,void*);
 
@@ -215,7 +215,7 @@ public:
 	bool isDampingSkip() const { return flags&DAMPING_SKIP; }
 	void setDampingSkip(bool skip) { if(!skip) flags&=~DAMPING_SKIP; else flags|=DAMPING_SKIP; }
 
-	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
+	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw) WOO_CXX11_OVERRIDE;
 	void addForceTorque(const Vector3r& f, const Vector3r& t=Vector3r::Zero()){ boost::mutex::scoped_lock l(lock); force+=f; torque+=t; }
 	void addForce(const Vector3r& f){ boost::mutex::scoped_lock l(lock); force+=f; }
 
@@ -280,7 +280,7 @@ struct DemField: public Field{
 	void removeParticle(Particle::id_t id);
 	void removeClump(size_t id);
 	vector<shared_ptr<Node>> splitNode(const shared_ptr<Node>&, const vector<shared_ptr<Particle>>& pp, const Real massMult=NaN, const Real inertiaMult=NaN);
-	AlignedBox3r renderingBbox() const; // overrides Field::renderingBbox
+	AlignedBox3r renderingBbox() const WOO_CXX11_OVERRIDE; // overrides Field::renderingBbox
 	boost::mutex nodesMutex; // sync adding nodes with the renderer, which might otherwise crash
 
 	void selfTest() WOO_CXX11_OVERRIDE;

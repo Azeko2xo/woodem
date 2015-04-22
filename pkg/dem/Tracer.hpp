@@ -9,7 +9,7 @@ struct TraceVisRep: public NodeVisRep{
 	void addPoint(const Vector3r& p, const Real& scalar);
 	void compress(int ratio);
 	#ifdef WOO_OPENGL
-		void render(const shared_ptr<Node>&,const GLViewInfo*);
+		void render(const shared_ptr<Node>&,const GLViewInfo*) WOO_CXX11_OVERRIDE;
 	#endif
 	void setHidden(bool hidden){ if(!hidden)flags&=~FLAG_HIDDEN; else flags|=FLAG_HIDDEN; }
 	bool isHidden() const { return flags&FLAG_HIDDEN; }
@@ -40,14 +40,14 @@ WOO_REGISTER_OBJECT(TraceVisRep);
 
 
 struct Tracer: public PeriodicEngine{
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	void resetNodesRep(bool setupEmpty=false, bool includeDead=true);
 	// bool notifyDead() WOO_CXX11_OVERRIDE(){ showHideRange(!dead); }
 	#ifdef WOO_OPENGL
 		void showHideRange(bool show);
 	#endif
 
-	virtual void run();
+	virtual void run() WOO_CXX11_OVERRIDE;
 	enum{SCALAR_NONE=0,SCALAR_TIME,SCALAR_VEL,SCALAR_ANGVEL,SCALAR_SIGNED_ACCEL,SCALAR_RADIUS,SCALAR_SHAPE_COLOR,SCALAR_KINETIC,SCALAR_ORDINAL};
 	WOO_CLASS_BASE_DOC_STATICATTRS_PY(Tracer,PeriodicEngine,"Save trace of node's movement",
 		((int,num,50,,"Number of positions to save (when creating new glyph)"))

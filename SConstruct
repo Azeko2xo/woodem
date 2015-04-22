@@ -194,13 +194,14 @@ def getRealWooVersion():
 	import os.path,re,os
 	if os.path.exists('RELEASE'):
 		return file('RELEASE').readline().strip()
+	baseVer='1.0'
 	if os.path.exists('.git'):
 		r0=os.popen("git rev-list HEAD --count 2>/dev/null").readlines()[0][:-1]
 		r1=os.popen("git log -1 --format='%h'").readlines()[0][:-1]
-		return 'r'+r0+'-git-'+r1
+		return baseVer+'.'+r0+'+git.'+r1
 	if os.path.exists('.bzr'):
 		r0=os.popen("LC_ALL=C bzr revno 2>/dev/null").readlines()[0][:-1]
-		return 'r'+r0+'-bzr'
+		return baseVer+'.'+r0+'+bzr'
 	if os.path.exists('VERSION'):
 		return file('VERSION').readline().strip()
 	return None

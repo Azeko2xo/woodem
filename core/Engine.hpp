@@ -107,12 +107,12 @@ WOO_REGISTER_OBJECT(Engine);
 class ParallelEngine: public Engine {
 	public:
 		typedef vector<vector<shared_ptr<Engine> > > slaveContainer;
-		virtual void run();
-		virtual bool isActivated(){return true;}
-		virtual bool needsField(){ return false; }
-		virtual void setField();
-		virtual void getLabeledObjects(const shared_ptr<LabelMapper>&);
-		void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
+		void run() WOO_CXX11_OVERRIDE;
+		bool isActivated() WOO_CXX11_OVERRIDE {return true;}
+		bool needsField() WOO_CXX11_OVERRIDE { return false; }
+		void setField() WOO_CXX11_OVERRIDE;
+		void getLabeledObjects(const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
+		void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw) WOO_CXX11_OVERRIDE;
 
 	// py access
 		py::list pySlavesGet();
@@ -129,7 +129,7 @@ WOO_REGISTER_OBJECT(ParallelEngine);
 class PeriodicEngine: public Engine{
 	public:
 		static Real getClock(){ timeval tp; gettimeofday(&tp,NULL); return tp.tv_sec+tp.tv_usec/1e6; }
-		virtual bool isActivated();
+		virtual bool isActivated() WOO_CXX11_OVERRIDE;
 		// set virtLast, realLast, stepLast as if we run now; don't modify nDo/nDone, though
 		void fakeRun();
 	#define woo_core_PeriodicEngine__CLASS_BASE_DOC_ATTRS_CTOR \
@@ -158,10 +158,10 @@ WOO_REGISTER_OBJECT(PeriodicEngine);
 
 
 struct PyRunner: public PeriodicEngine{
-	virtual void run(){ Engine::runPy(command); }
+	virtual void run() WOO_CXX11_OVERRIDE{ Engine::runPy(command); }
 	// to give command without saying 'command=...'
-	virtual bool needsField(){ return false; }
-	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
+	virtual bool needsField() WOO_CXX11_OVERRIDE { return false; }
+	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
 	#define woo_core_PyRunner__CLASS_BASE_DOC_ATTRS \
 		PyRunner,PeriodicEngine, \
 		"Execute a python command periodically, with defined (and adjustable) periodicity. See :obj:`PeriodicEngine` documentation for details.\n\n.. admonition:: Special constructor\n\n   *command* can be given as first unnamed string argument (``PyRunner('foo()')``), stepPeriod as unnamed integer argument (``PyRunner('foo()',100)`` or ``PyRunner(100,'foo()')``).", \

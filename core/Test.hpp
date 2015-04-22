@@ -88,7 +88,7 @@ namespace woo{
 
 
 	struct WooTestPeriodicEngine: public PeriodicEngine{
-		void notifyDead(){ deadCounter++; }
+		void notifyDead() WOO_CXX11_OVERRIDE { deadCounter++; }
 		#define woo_core_WooTestPeriodicEngine__CLASS_BASE_DOC_ATTRS \
 			WooTestPeriodicEngine,PeriodicEngine,"Test some PeriodicEngine features.", \
 			((int,deadCounter,0,,"Count how many times :obj:`dead` was assigned to."))

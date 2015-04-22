@@ -15,7 +15,7 @@ namespace woo{
 		bool isInside(const Vector3r& pt) const WOO_CXX11_OVERRIDE;
 		// update dynamic properties (mass, intertia) of the sphere based on current radius
 		void lumpMassInertia(const shared_ptr<Node>&, Real density, Real& mass, Matrix3r& I, bool& rotateOk) WOO_CXX11_OVERRIDE;
-		virtual string pyStr() const { return "<Sphere r="+to_string(radius)+" @ "+lexical_cast<string>(this)+">"; }
+		virtual string pyStr() const WOO_CXX11_OVERRIDE { return "<Sphere r="+to_string(radius)+" @ "+lexical_cast<string>(this)+">"; }
 		Real equivRadius() const WOO_CXX11_OVERRIDE { return radius; }
 		Real volume() const WOO_CXX11_OVERRIDE;
 		AlignedBox3r alignedBox() const WOO_CXX11_OVERRIDE;
@@ -31,7 +31,7 @@ namespace woo{
 WOO_REGISTER_OBJECT(Sphere);
 
 struct Bo1_Sphere_Aabb: public BoundFunctor{
-	void go(const shared_ptr<Shape>&);
+	void go(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	void goGeneric(const shared_ptr<Shape>& sh, Vector3r halfSize);
 	FUNCTOR1D(Sphere);
 	#define woo_dem_Bo1_Sphere_Aabb__CLASS_BASE_DOC_ATTRS \
@@ -93,7 +93,7 @@ class Gl1_Sphere: public GlShapeFunctor{
 		// radius is radius for sphere, and it can be set to 1.0 for ellipsoid (containing radii inside scale)
 		void renderScaledSphere(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&, const Real& radius, const Vector3r& scaleAxes=Vector3r(NaN,NaN,NaN));
 	public:
-		virtual void go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2,const GLViewInfo& glInfo){
+		virtual void go(const shared_ptr<Shape>& sh, const Vector3r& shift, bool wire2,const GLViewInfo& glInfo) WOO_CXX11_OVERRIDE {
 			renderScaledSphere(sh,shift,wire2,glInfo,sh->cast<Sphere>().radius);
 		}
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Sphere,GlShapeFunctor,"Renders :obj:`Sphere` object",

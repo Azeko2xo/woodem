@@ -4,7 +4,7 @@
 // #include<woo/pkg/dem/Cp2_FrictMat_FrictPhys.hpp>
 
 struct Cp2_FrictMat_FrictPhys_CrossAnisotropic: CPhysFunctor {
-	virtual void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
+	virtual void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(FrictMat,FrictMat);
 	void postLoad(Cp2_FrictMat_FrictPhys_CrossAnisotropic&,void*);
 	WOO_DECL_LOGGER;

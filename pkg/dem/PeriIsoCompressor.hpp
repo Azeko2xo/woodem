@@ -11,7 +11,7 @@ struct PeriIsoCompressor: public Engine{
 	void avgStressIsoStiffness(const Vector3r& cellAreas, Vector3r& stress, Real& stiff);
 
 	Real maxDisplPerStep;
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(PeriIsoCompressor,Engine,ClassTrait().doc("Compress/decompress cloud of spheres by controlling periodic cell size until it reaches prescribed average stress, then moving to next stress value in given stress series.").section("Stress/strain control","TODO",{"WeirdTriaxControl"}),
 		((vector<Real>,stresses,,,"Stresses that should be reached, one after another"))
 		((Real,charLen,-1.,,"Characteristic length, should be something like mean particle diameter (default -1=invalid value))"))
@@ -35,7 +35,7 @@ WOO_REGISTER_OBJECT(PeriIsoCompressor);
 struct WeirdTriaxControl: public Engine{
 	bool acceptsFiled(Field* f){ return dynamic_cast<DemField*>(f); }
 	DemField* dem;
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	//	void strainStressStiffUpdate();
 	WOO_CLASS_BASE_DOC_ATTRS(WeirdTriaxControl,Engine,"Engine for independently controlling stress or strain in periodic simulations.\n\n``strainStress`` contains absolute values for the controlled quantity, and ``stressMask`` determines meaning of those values (0 for strain, 1 for stress): e.g. ``( 1<<0 | 1<<2 ) = 1 | 4 = 5`` means that ``strainStress[0]`` and ``strainStress[2]`` are stress values, and ``strainStress[1]`` is strain. \n\nSee scripts/test/periodic-triax.py for a simple example.",
 		((Vector3r,goal,Vector3r::Zero(),,"Desired stress or strain values (depending on stressMask), strains defined as ``strain(i)=log(Fii)``.\n\n.. warning:: Strains are relative to the :obj:`woo.core.Scene.cell.refSize` (reference cell size), not the current one (e.g. at the moment when the new strain value is set)."))

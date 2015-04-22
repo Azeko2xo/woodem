@@ -45,7 +45,7 @@ WOO_REGISTER_OBJECT(LawFunctor);
 /* ***************************************** */
 
 struct CGeomDispatcher: public Dispatcher2D</* functor type*/ CGeomFunctor, /* autosymmetry*/ false>{
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	shared_ptr<Contact> explicitAction(Scene*, const shared_ptr<Particle>&, const shared_ptr<Particle>&, bool force);
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CGeomDispatcher,CGeomFunctor,/* doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	WOO_DECL_LOGGER;
@@ -53,14 +53,14 @@ struct CGeomDispatcher: public Dispatcher2D</* functor type*/ CGeomFunctor, /* a
 WOO_REGISTER_OBJECT(CGeomDispatcher);
 
 struct CPhysDispatcher: public Dispatcher2D</*functor type*/ CPhysFunctor>{		
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	void explicitAction(Scene*, shared_ptr<Material>&, shared_ptr<Material>&, shared_ptr<Contact>&);
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(CPhysDispatcher,CPhysFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 };
 WOO_REGISTER_OBJECT(CPhysDispatcher);
 
 struct LawDispatcher: public Dispatcher2D</*functor type*/ LawFunctor, /*autosymmetry*/ false>{
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(LawDispatcher,LawFunctor,/*doc is optional*/,/*attrs*/,/*ctor*/,/*py*/);
 	WOO_DECL_LOGGER;
 };
@@ -76,7 +76,7 @@ WOO_REGISTER_OBJECT(LawDispatcher);
 #endif
 
 class ContactLoop: public Engine {
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	// store interactions that should be deleted after loop in action, not later
 	#ifdef WOO_OPENMP
 		vector<list<shared_ptr<Contact>>> removeAfterLoopRefs;
@@ -91,9 +91,9 @@ class ContactLoop: public Engine {
 	void applyForceUninodal(const shared_ptr<Contact>& C, const Particle* p);
 
 	public:
-		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
-		virtual void getLabeledObjects(const shared_ptr<LabelMapper>&);
-		virtual void run();
+		virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
+		virtual void getLabeledObjects(const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
+		virtual void run() WOO_CXX11_OVERRIDE;
 	#ifdef CONTACTLOOP_TIMING
 		#define woo_dem_ContactLoop__CTOR_timingDeltas timingDeltas=shared_ptr<TimingDeltas>(new TimingDeltas);
 	#else

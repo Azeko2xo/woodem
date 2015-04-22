@@ -76,7 +76,7 @@ struct ParticleGenerator: public Object{
 WOO_REGISTER_OBJECT(ParticleGenerator);
 
 struct MinMaxSphereGenerator: public ParticleGenerator{
-	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time);
+	std::tuple<Real,vector<ParticleAndBox>> operator()(const shared_ptr<Material>&m, const Real& time) WOO_CXX11_OVERRIDE;
 	Real critDt(Real density, Real young) WOO_CXX11_OVERRIDE; 
 	bool isSpheresOnly() const WOO_CXX11_OVERRIDE { return true; }
 	Real padDist() const WOO_CXX11_OVERRIDE{ return dRange.minCoeff()/2.; }
@@ -166,10 +166,10 @@ struct Collider;
 
 struct RandomInlet: public Inlet{
 	WOO_DECL_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	virtual Vector3r randomPosition(const Real& read, const Real& padDist){ throw std::runtime_error("Calling RandomInlet.randomPosition	(abstract method); use derived classes."); }
 	virtual bool validateBox(const AlignedBox3r& b) { throw std::runtime_error("Calling ParticleFactor.validateBox (abstract method); use derived classes."); }
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	void pyClear(){ if(generator) generator->clear(); num=0; mass=0; stepGoalMass=0; /* do not reset stepPrev! */ }
 	Real critDt() WOO_CXX11_OVERRIDE; 
 	shared_ptr<Collider> collider;

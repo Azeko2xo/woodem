@@ -39,11 +39,11 @@ struct VtkFlowExport: public PeriodicEngine{
 	void fillOnePoint(const Vector3i& ijk, const Vector3r& P, vtkIdList* ids);
 	void writeGrid();
 
-	void run(); 
+	void run() WOO_CXX11_OVERRIDE;  
 
 	WOO_DECL_LOGGER;
 
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 
 	// distribution parameters
 	boost::math::normal_distribution<Real> distrib;

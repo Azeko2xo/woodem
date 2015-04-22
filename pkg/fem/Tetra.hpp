@@ -80,7 +80,7 @@ struct Tet4: public Tetra{
 WOO_REGISTER_OBJECT(Tet4);
 
 struct Bo1_Tetra_Aabb: public BoundFunctor{
-	void go(const shared_ptr<Shape>&);
+	void go(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Tetra);
 	#define woo_fem_Bo1_Tetra_Aabb__CLASS_BASE_DOC Bo1_Tetra_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Tetra`."
 	WOO_DECL__CLASS_BASE_DOC(woo_fem_Bo1_Tetra_Aabb__CLASS_BASE_DOC);
@@ -105,7 +105,7 @@ WOO_REGISTER_OBJECT(In2_Tet4_ElastMat);
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Tetra: public GlShapeFunctor{	
-	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
+	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	//void drawEdges(const Tetra& f, const Vector3r& facetNormal, const Vector3r shifts[3], bool wire);
 	//void glVertex(const Tetra& f, int i);
 	RENDERS(Tetra);
@@ -118,7 +118,7 @@ struct Gl1_Tetra: public GlShapeFunctor{
 WOO_REGISTER_OBJECT(Gl1_Tetra);
 
 struct Gl1_Tet4: public Gl1_Tetra{	
-	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
+	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	RENDERS(Tet4);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Tet4,Gl1_Tetra,"Renders :obj:`Tet4` object; :obj:`Tetra` itself is rendered via :obj:`Gl1_Tetra`.",
 		((bool,node,false,,"Show local frame node"))

@@ -10,7 +10,7 @@
 
 
 
-#define RENDERS(name) public: virtual string renders() const { return #name;}; FUNCTOR1D(name);
+#define RENDERS(name) public: virtual string renders() const WOO_CXX11_OVERRIDE { return #name;}; FUNCTOR1D(name);
 
 struct scene;
 struct Renderer;

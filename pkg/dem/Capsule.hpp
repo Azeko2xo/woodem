@@ -35,7 +35,7 @@ struct Capsule: public Shape{
 WOO_REGISTER_OBJECT(Capsule);
 
 struct Bo1_Capsule_Aabb: public BoundFunctor{
-	virtual void go(const shared_ptr<Shape>&);
+	virtual void go(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Capsule);
 	WOO_CLASS_BASE_DOC(Bo1_Capsule_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`Capsule`");
 };
@@ -100,7 +100,7 @@ WOO_REGISTER_OBJECT(Cg2_Facet_Capsule_L6Geom);
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Capsule: public Gl1_Sphere{
-	virtual void go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2,const GLViewInfo& glInfo);
+	virtual void go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2,const GLViewInfo& glInfo) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Capsule,Gl1_Sphere,"Renders :obj:`woo.dem.Capsule` object",);
 	RENDERS(Capsule);
 };

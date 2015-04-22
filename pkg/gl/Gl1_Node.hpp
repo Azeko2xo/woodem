@@ -4,7 +4,7 @@
 
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Node: public GlNodeFunctor{
-	virtual void go(const shared_ptr<Node>&, const GLViewInfo&);
+	virtual void go(const shared_ptr<Node>&, const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	RENDERS(Node);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Node,GlNodeFunctor,"Render generic :obj:`woo.dem.Node`.",
 		((int,wd,1,,"Local axes line width in pixels"))

@@ -52,14 +52,14 @@ class Indexable{
 
 #define REGISTER_CLASS_INDEX(SomeClass,BaseClass)                                      \
 	public: static int& getClassIndexStatic() { static int index = -1; return index; } \
-	virtual int& getClassIndex()       { return getClassIndexStatic(); }        \
-	virtual const int& getClassIndex() const { return getClassIndexStatic(); }  \
-	virtual int& getBaseClassIndex(int depth) {              \
+	virtual int& getClassIndex() WOO_CXX11_OVERRIDE { return getClassIndexStatic(); }        \
+	virtual const int& getClassIndex() const WOO_CXX11_OVERRIDE { return getClassIndexStatic(); }  \
+	virtual int& getBaseClassIndex(int depth) WOO_CXX11_OVERRIDE {              \
 		static boost::scoped_ptr<BaseClass> baseClass(new BaseClass); \
 		if(depth == 1) return baseClass->getClassIndex();             \
 		else           return baseClass->getBaseClassIndex(--depth);  \
 	}                                                                \
-	virtual const int& getBaseClassIndex(int depth) const {  \
+	virtual const int& getBaseClassIndex(int depth) const WOO_CXX11_OVERRIDE {  \
 		static boost::scoped_ptr<BaseClass> baseClass(new BaseClass); \
 		if(depth == 1) return baseClass->getClassIndex();             \
 		else           return baseClass->getBaseClassIndex(--depth);  \
@@ -72,12 +72,12 @@ class Indexable{
 #define REGISTER_INDEX_COUNTER(SomeClass) \
 	private: static int& getClassIndexStatic()      { static int index = 0; return index; }\
 	 static int& getMaxCurrentlyUsedIndexStatic()   { static int maxCurrentlyUsedIndex = 0; return maxCurrentlyUsedIndex; } \
-	public: virtual int& getClassIndex()            { return getClassIndexStatic(); }       \
-	virtual const int& getClassIndex() const        { return getClassIndexStatic(); }       \
-	virtual int& getBaseClassIndex(int)             { static int _1(-1); return _1; /* throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." );*/} \
-	virtual const int& getBaseClassIndex(int) const { static int _1(-1); return _1; /* throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." ); */ } \
-	virtual const int& getMaxCurrentlyUsedClassIndex() const { assert(dynamic_cast<SomeClass*>(const_cast<SomeClass*>(this))); return getMaxCurrentlyUsedIndexStatic(); } \
-	virtual void incrementMaxCurrentlyUsedClassIndex() { assert(dynamic_cast<SomeClass*>(this)); int& max = getMaxCurrentlyUsedIndexStatic(); max++; }
+	public: virtual int& getClassIndex() WOO_CXX11_OVERRIDE { return getClassIndexStatic(); }       \
+	virtual const int& getClassIndex() const WOO_CXX11_OVERRIDE { return getClassIndexStatic(); }       \
+	virtual int& getBaseClassIndex(int) WOO_CXX11_OVERRIDE { static int _1(-1); return _1; /* throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." );*/} \
+	virtual const int& getBaseClassIndex(int) const WOO_CXX11_OVERRIDE { static int _1(-1); return _1; /* throw std::logic_error("One of the following errors was detected:\n(1) Class " #SomeClass " called createIndex() in its ctor (but it shouldn't, being a top-level indexable; only use REGISTER_INDEX_COUNTER, but not createIndex()).\n(2) Some DerivedClass deriving from " #SomeClass " forgot to use REGISTER_CLASS_INDEX(DerivedClass," #SomeClass ").\nPlease fix that and come back again." ); */ } \
+	virtual const int& getMaxCurrentlyUsedClassIndex() const WOO_CXX11_OVERRIDE { assert(dynamic_cast<SomeClass*>(const_cast<SomeClass*>(this))); return getMaxCurrentlyUsedIndexStatic(); } \
+	virtual void incrementMaxCurrentlyUsedClassIndex() WOO_CXX11_OVERRIDE { assert(dynamic_cast<SomeClass*>(this)); int& max = getMaxCurrentlyUsedIndexStatic(); max++; }
 
 // macro that should be passed in the 4th argument of WOO_CLASS_BASE_ATTR_PY in the top-level indexable
 #define WOO_PY_TOPINDEXABLE(className) .add_property("dispIndex",&Indexable_getClassIndex<className>,"Return class index of this instance.").def("dispHierarchy",&Indexable_getClassIndices<className>,(boost::python::arg("names")=true),"Return list of dispatch classes (from down upwards), starting with the class instance itself, top-level indexable at last. If names is true (default), return class names rather than numerical indices.")

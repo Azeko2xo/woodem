@@ -6,7 +6,7 @@
 #include<woo/core/ScalarRange.hpp>
 
 struct LabelGlRep: public NodeVisRep{
-	void render(const shared_ptr<Node>&, const GLViewInfo*);
+	void render(const shared_ptr<Node>&, const GLViewInfo*) WOO_CXX11_OVERRIDE;
 	#define woo_gl_LabelGlRep__CLASS_BASE_DOC_ATTRS \
 		LabelGlRep,NodeVisRep,"Render scalar value at associated node", \
 		((string,text,"",,"Text to be rendered at the node's position")) \
@@ -17,7 +17,7 @@ struct LabelGlRep: public NodeVisRep{
 WOO_REGISTER_OBJECT(LabelGlRep);
 
 struct ScalarGlRep: public NodeVisRep{
-	void render(const shared_ptr<Node>&, const GLViewInfo*);
+	void render(const shared_ptr<Node>&, const GLViewInfo*) WOO_CXX11_OVERRIDE;
 	#define woo_gl_ScalarGlRep__CLASS_BASE_DOC_ATTRS \
 		ScalarGlRep,NodeVisRep,"Render scalar value at associated node", \
 		((Real,val,0,,"Value to be rendered")) \
@@ -30,7 +30,7 @@ struct ScalarGlRep: public NodeVisRep{
 WOO_REGISTER_OBJECT(ScalarGlRep);
 
 struct VectorGlRep: public NodeVisRep{
-	void render(const shared_ptr<Node>&, const GLViewInfo*);
+	void render(const shared_ptr<Node>&, const GLViewInfo*) WOO_CXX11_OVERRIDE;
 	#define woo_gl_VectorGlRep__CLASS_BASE_DOC_ATTRS \
 		VectorGlRep,NodeVisRep,"Render vector value at associated node, as an arrow", \
 		((Vector3r,val,Vector3r::Zero(),,"Value to be rendered")) \
@@ -42,7 +42,7 @@ struct VectorGlRep: public NodeVisRep{
 WOO_REGISTER_OBJECT(VectorGlRep);
 
 struct ActReactGlRep: public VectorGlRep{
-	void render(const shared_ptr<Node>&, const GLViewInfo*);
+	void render(const shared_ptr<Node>&, const GLViewInfo*) WOO_CXX11_OVERRIDE;
 	void renderDoubleArrow(const Vector3r& pos, const Vector3r& arr, bool posStart, const Vector3r& offset, const Vector3r& color);
 	#define woo_gl_ActReactGlRep__CLASS_BASE_DOC_ATTRS \
 		ActReactGlRep,VectorGlRep,"Render action and reaction vectors as opposing arrows, with offset and optionally separate normal/shear components. The value is always given in node-local coordinates!", \
@@ -55,7 +55,7 @@ struct ActReactGlRep: public VectorGlRep{
 WOO_REGISTER_OBJECT(ActReactGlRep);
 
 struct TensorGlRep: public NodeVisRep{
-	void render(const shared_ptr<Node>&, const GLViewInfo*);
+	void render(const shared_ptr<Node>&, const GLViewInfo*) WOO_CXX11_OVERRIDE;
 	void postLoad(TensorGlRep&,void*);
 	#define woo_gl_TensorGlRep__CLASS_BASE_DOC_ATTRS \
 		TensorGlRep,NodeVisRep,"Render tensor (given as 3x3 matrix) as its principal components.", \
@@ -73,7 +73,7 @@ struct TensorGlRep: public NodeVisRep{
 WOO_REGISTER_OBJECT(TensorGlRep);
 
 struct CylGlRep: public NodeVisRep{
-	void render(const shared_ptr<Node>&, const GLViewInfo*);
+	void render(const shared_ptr<Node>&, const GLViewInfo*) WOO_CXX11_OVERRIDE;
 	//void postLoad(CylGlRep&,void*);
 	#define woo_gl_CylGlRep__CLASS_BASE_DOC_ATTRS \
 		CylGlRep,NodeVisRep,"Render cylinder aligned with local x-axis, with color and radius given by val (and optionally val2).", \

@@ -23,7 +23,7 @@
 
 struct GridCollider: public Collider{
 	WOO_DECL_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	DemField* dem;
 	void postLoad(GridCollider&, void*);
 	void selfTest() WOO_CXX11_OVERRIDE;

@@ -32,8 +32,8 @@ struct Capsule; // for triangulateCapsule decl
 
 struct VtkExport: public PeriodicEngine{
 	WOO_DECL_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	void run();
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
+	void run() WOO_CXX11_OVERRIDE;
 
 	enum{WHAT_SPHERES=1,WHAT_MESH=2,WHAT_CON=4,WHAT_TRI=8 /*,WHAT_PELLET=8*/ };
 	enum{WHAT_ALL=WHAT_SPHERES|WHAT_MESH|WHAT_CON|WHAT_TRI};

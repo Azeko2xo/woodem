@@ -34,7 +34,7 @@ struct Truss: public Rod{
 WOO_REGISTER_OBJECT(Truss);
 
 struct Cg2_Rod_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
-	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	#define woo_dem_Cg2_Rod_Sphere_L6Geom__CLASS_BASE_DOC \
 		Cg2_Rod_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`Rod` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_Rod_Sphere_L6Geom__CLASS_BASE_DOC);
@@ -48,7 +48,7 @@ WOO_REGISTER_OBJECT(Cg2_Rod_Sphere_L6Geom);
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Rod: public GlShapeFunctor{
-	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
+	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Rod);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Rod,GlShapeFunctor,"Render truss particles",
 		((int,slices,12,,"Number of slices, controls quality"))
@@ -62,7 +62,7 @@ WOO_REGISTER_OBJECT(Gl1_Rod);
 #endif
 
 struct Bo1_Rod_Aabb: public BoundFunctor{
-	void go(const shared_ptr<Shape>&);
+	void go(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Rod);
 	WOO_CLASS_BASE_DOC(Bo1_Rod_Aabb,BoundFunctor,"Compute :obj:`woo.dem.Aabb` of a :obj:`Rod` particle")
 };

@@ -9,9 +9,9 @@
 
 struct Outlet: public PeriodicEngine{
 	WOO_DECL_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	virtual bool isInside(const Vector3r& p) { throw std::runtime_error(pyStr()+" did not override Outlet::isInside."); }
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	py::object pyPsd(bool mass, bool cumulative, bool normalize, int num, const Vector2r& dRange, const Vector2r& tRange, bool zip, bool emptyOk);
 	py::object pyDiamMass(bool zipped=false) const;
 	py::object pyDiamMassTime(bool zipped=false) const;
@@ -51,7 +51,7 @@ WOO_REGISTER_OBJECT(Outlet);
 
 struct BoxOutlet: public Outlet{
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&);
+		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	#endif
 	bool isInside(const Vector3r& p) WOO_CXX11_OVERRIDE { return box.contains(node?node->glob2loc(p):p); }
 	#define woo_dem_BoxOutlet__CLASS_BASE_DOC_ATTRS \

@@ -41,7 +41,7 @@ class FrictPhys: public CPhys{
 WOO_REGISTER_OBJECT(FrictPhys);
 
 struct Cp2_FrictMat_FrictPhys: public CPhysFunctor{
-	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
+	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	void updateFrictPhys(FrictMat& m1, FrictMat& m2, FrictPhys& ph, const shared_ptr<Contact>& C);
 	FUNCTOR2D(FrictMat,FrictMat);
 	#define woo_dem_Cp2_FrictMat_FrictPhys__CLASS_BASE_DOC_ATTRS \

@@ -104,7 +104,7 @@ Real AnisoPorosityAnalyzer::computeOneRay(const Vector3r& A, const Vector3r& B, 
 	Real lenAB=(B-A).norm();
 	Vector3r rayDir=(B-A)/lenAB;
 	int i=-1;
-	FOREACH(const SpherePack::Sph& s, pack.pack){
+	for(const SpherePack::Sph& s: pack.pack){
 		i++;
 		Real t0,t1;
 		int nIntr=CompUtils::lineSphereIntersection(A,rayDir,s.c,s.r,t0,t1);
@@ -129,7 +129,7 @@ void AnisoPorosityAnalyzer::initialize(){
 	if(scene->step==initStep && dem->particles->size()==initNum) return;
 	pack=SpherePack();
 	pack.cellSize=scene->cell->getSize();
-	FOREACH(const shared_ptr<Particle>& p, *dem->particles){
+	for(const shared_ptr<Particle>& p: *dem->particles){
 		const shared_ptr<Sphere> s=dynamic_pointer_cast<Sphere>(p->shape);
 		if(!s || s->nodes.size()==0)continue;
 		pack.add(s->nodes[0]->pos,s->radius);

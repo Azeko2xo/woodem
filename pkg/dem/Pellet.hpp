@@ -69,7 +69,7 @@ class PelletPhys: public FrictPhys{
 WOO_REGISTER_OBJECT(PelletPhys);
 
 struct Cp2_PelletMat_PelletPhys: public Cp2_FrictMat_FrictPhys{
-	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&);
+	void go(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Contact>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR2D(PelletMat,PelletMat);
 	#define woo_dem_Cp2_PelletMat_PelletPhys_CLASS_BASE_DOC \
 		Cp2_PelletMat_PelletPhys,Cp2_FrictMat_FrictPhys,"Compute :obj:`PelletPhys` given two instances of :ref`PelletMat`. :obj:`PelletMat.normPlastCoeff` is averaged into :obj:`PelletPhys.normPlastCoeff`, while minimum of :obj:`PelletMat.kaDivKn` is taken to compute :obj:`PelletPhys.ka`."
@@ -122,8 +122,8 @@ WOO_REGISTER_OBJECT(PelletCData);
 
 struct PelletAgglomerator: public Engine{
 	WOO_DECL_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	void run();
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
+	void run() WOO_CXX11_OVERRIDE;
 	#define woo_dem_PelletAgglomerator__CLASS_BASE_DOC_ATTRS \
 		PelletAgglomerator,Engine,"Compute agglomeration of pellets due to contact some special particles, or wearing due to impacts (only applies to particles with :obj:`PelletMat`.", \
 		((vector<shared_ptr<Particle>>,agglomSrcs,,,"Sources of agglomerating mass; particles in contact with this source will have their radius increased based on their relative angular velocity.")) \

@@ -83,7 +83,7 @@ struct Node: public Object, public Indexable{
 	static void pySetData(const shared_ptr<Node>& n, const shared_ptr<NodeDataSubclass>& d){ n->setData<NodeDataSubclass>(d); }
 	string pyStr() const WOO_CXX11_OVERRIDE;
 
-	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw);
+	void pyHandleCustomCtorArgs(py::tuple& args, py::dict& kw) WOO_CXX11_OVERRIDE;
 
 	// transform point p from global to local coordinates
 	Vector3r glob2loc(const Vector3r& p){ return ori.conjugate()*(p-pos); }

@@ -24,15 +24,15 @@ struct InfCylinder: public Shape{
 WOO_REGISTER_OBJECT(InfCylinder);
 
 struct Bo1_InfCylinder_Aabb: public BoundFunctor{
-	virtual void go(const shared_ptr<Shape>&);
+	virtual void go(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(InfCylinder);
 	WOO_CLASS_BASE_DOC(Bo1_InfCylinder_Aabb,BoundFunctor,"Creates/updates an :obj:`Aabb` of a :obj:`InfCylinder`");
 };
 WOO_REGISTER_OBJECT(Bo1_InfCylinder_Aabb);
 
 struct Cg2_InfCylinder_Sphere_L6Geom: public Cg2_Any_Any_L6Geom__Base{
-	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
-	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){ throw std::logic_error("ContactLoop should swap interaction arguments, should be InfCylinder+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
+	virtual bool goReverse(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE { throw std::logic_error("ContactLoop should swap interaction arguments, should be InfCylinder+Sphere, but is "+s1->getClassName()+"+"+s2->getClassName()); }
 	#define woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC \
 		Cg2_InfCylinder_Sphere_L6Geom,Cg2_Any_Any_L6Geom__Base,"Incrementally compute :obj:`L6Geom` for contact between :obj:`InfCylinder` and :obj:`Sphere`. Uses attributes of :obj:`Cg2_Sphere_Sphere_L6Geom`."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Cg2_InfCylinder_Sphere_L6Geom__CLASS_BASE_DOC);
@@ -48,7 +48,7 @@ WOO_REGISTER_OBJECT(Cg2_InfCylinder_Sphere_L6Geom);
 
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_InfCylinder: public GlShapeFunctor{	
-	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&);
+	virtual void go(const shared_ptr<Shape>&, const Vector3r&, bool,const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_InfCylinder,GlShapeFunctor,"Renders :obj:`InfCylinder` object",
 		((bool,wire,false,,"Render Cylinders with wireframe"))
 		((bool,spokes,true,,"Render spokes between the cylinder axis and edge, at the position of :obj:`InfCylinder.glAB`."))

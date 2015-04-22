@@ -44,9 +44,9 @@ Because we need literal functor and class names for registration in python, we p
 	virtual void add(shared_ptr<FunctorT> f){ bool dupe=false; string fn=f->getClassName(); for(const shared_ptr<FunctorT>& f: functors) { if(fn==f->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); } \
 	BOOST_PP_CAT(_WOO_DISPATCHER,BOOST_PP_CAT(Dim,D_FUNCTOR_ADD))(FunctorT,f) \
 	py::list functors_get(void) const { py::list ret; for(const shared_ptr<FunctorT>& f: functors){ ret.append(f); } return ret; } \
-	virtual void getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper){ for(const shared_ptr<FunctorT>& f: functors){ Engine::handlePossiblyLabeledObject(f,labelMapper); } } \
+	void getLabeledObjects(const shared_ptr<LabelMapper>& labelMapper) WOO_CXX11_OVERRIDE { for(const shared_ptr<FunctorT>& f: functors){ Engine::handlePossiblyLabeledObject(f,labelMapper); } } \
 	void functors_set(const vector<shared_ptr<FunctorT> >& ff){ functors.clear(); for(const shared_ptr<FunctorT>& f: ff) add(f); postLoad(*this,NULL); } \
-	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d){ if(py::len(t)==0)return; if(py::len(t)!=1) throw invalid_argument("Exactly one list of " BOOST_PP_STRINGIZE(FunctorT) " must be given."); typedef std::vector<shared_ptr<FunctorT> > vecF; vecF vf=py::extract<vecF>(t[0])(); functors_set(vf); t=py::tuple(); } \
+	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE { if(py::len(t)==0)return; if(py::len(t)!=1) throw invalid_argument("Exactly one list of " BOOST_PP_STRINGIZE(FunctorT) " must be given."); typedef std::vector<shared_ptr<FunctorT> > vecF; vecF vf=py::extract<vecF>(t[0])(); functors_set(vf); t=py::tuple(); } \
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(DispatcherT,Dispatcher,ClassTrait().doc("Dispatcher calling :obj:`functors<" BOOST_PP_STRINGIZE(FunctorT) ">` based on received argument type(s).\n\n") _doc, \
 		((vector<shared_ptr<FunctorT> >,functors,,,"Functors active in the dispatch mechanism [overridden below].")) /*additional attrs*/ attrs, \
 		/*ctor*/ ctor, /*py*/ ppy .add_property("functors",&DispatcherT::functors_get,&DispatcherT::functors_set,"Functors associated with this dispatcher (list of :obj:`" BOOST_PP_STRINGIZE(FunctorT) "`)") \
@@ -116,14 +116,14 @@ class Dispatcher1D : public Dispatcher,
 			return ret;
 		}
 
-		int getDimension() { return 1; }
+		int getDimension() WOO_CXX11_OVERRIDE { return 1; }
 	
-		virtual string getFunctorType(){
+		string getFunctorType() WOO_CXX11_OVERRIDE {
 			shared_ptr<FunctorType> eu(new FunctorType);
 			return eu->getClassName();
 		}
 
-		virtual string getBaseClassType(unsigned int i){
+		string getBaseClassType(unsigned int i) WOO_CXX11_OVERRIDE {
 			if (i==0) { shared_ptr<baseClass> bc(new baseClass); return bc->getClassName(); }
 			else return "";
 		}
@@ -167,13 +167,13 @@ class Dispatcher2D : public Dispatcher,
 			return ret;
 		}
 
-		virtual int getDimension() { return 2; }
+		int getDimension() WOO_CXX11_OVERRIDE { return 2; }
 
-		virtual string getFunctorType(){
+		string getFunctorType() WOO_CXX11_OVERRIDE {
 			shared_ptr<FunctorType> eu(new FunctorType);
 			return eu->getClassName();
 		}
-		virtual string getBaseClassType(unsigned int i){
+		string getBaseClassType(unsigned int i) WOO_CXX11_OVERRIDE {
 			if (i==0){ shared_ptr<baseClass1> bc(new baseClass1); return bc->getClassName(); }
 			else if (i==1){ shared_ptr<baseClass2> bc(new baseClass2); return bc->getClassName();}
 			else return "";

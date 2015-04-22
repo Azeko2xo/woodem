@@ -10,7 +10,7 @@
 namespace woo{
 	struct Ellipsoid: public Shape{
 		void selfTest(const shared_ptr<Particle>&) WOO_CXX11_OVERRIDE;
-		int numNodes() const { return 1; }
+		int numNodes() const WOO_CXX11_OVERRIDE { return 1; }
 		// return transformation matrix transforming unit sphere to this ellipsoid
 		Matrix3r trsfFromUnitSphere() const;
 		Matrix3r trsfFromUnitSphere(const Quaternionr& ori) const; // with additional rotation (local coords)
@@ -40,7 +40,7 @@ namespace woo{
 WOO_REGISTER_OBJECT(Ellipsoid);
 
 struct Bo1_Ellipsoid_Aabb: public Bo1_Sphere_Aabb{
-	void go(const shared_ptr<Shape>&);
+	void go(const shared_ptr<Shape>&) WOO_CXX11_OVERRIDE;
 	FUNCTOR1D(Ellipsoid);
 	WOO_CLASS_BASE_DOC_ATTRS(Bo1_Ellipsoid_Aabb,Bo1_Sphere_Aabb,"Functor creating :obj:`Aabb` from :obj:`Ellipsoid`.\n\n.. todo:: Handle rotation which is not detected by verlet distance!\n\n.. warning:: :obj:`woo.dem.Bo1_Sphere_Aabb.distFactor` is ignored.",
 	);
@@ -98,7 +98,7 @@ WOO_REGISTER_OBJECT(Cg2_Facet_Ellipsoid_L6Geom);
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Ellipsoid: public Gl1_Sphere{
-	virtual void go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2,const GLViewInfo& glInfo){
+	virtual void go(const shared_ptr<Shape>& shape, const Vector3r& shift, bool wire2,const GLViewInfo& glInfo) WOO_CXX11_OVERRIDE {
 		Gl1_Sphere::renderScaledSphere(shape,shift,wire2,glInfo,/*radius*/1.0,shape->cast<Ellipsoid>().semiAxes);
 	}
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Ellipsoid,Gl1_Sphere,"Renders :obj:`woo.dem.Ellipsoid` object",);

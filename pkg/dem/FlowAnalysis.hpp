@@ -10,7 +10,7 @@
 
 struct FlowAnalysis: public PeriodicEngine{
 	WOO_DECL_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	DemField* dem; // temp only
 	typedef boost::multi_array<Real,5> boost_multi_array_real_5;
 	typedef boost::multi_array<Vector3r,3> boost_multi_array_Vector3_3;
@@ -41,11 +41,11 @@ struct FlowAnalysis: public PeriodicEngine{
 
 
 
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	void reset();
 
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&);
+		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	#endif
 
 	// number of floats to store for each point

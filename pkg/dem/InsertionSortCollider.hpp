@@ -84,7 +84,7 @@ Possible performance improvements & bugs
 struct ParticleContainer;
 
 struct InsertionSortCollider: public Collider {
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 
 	private:
 
@@ -215,21 +215,21 @@ struct InsertionSortCollider: public Collider {
 
 
 	
-	virtual bool isActivated();
+	virtual bool isActivated() WOO_CXX11_OVERRIDE;
 
 	// force reinitialization at next run
-	virtual void invalidatePersistentData(){ for(int i=0; i<3; i++){ BB[i].vec.clear(); BB[i].size=0; }}
+	virtual void invalidatePersistentData() WOO_CXX11_OVERRIDE { for(int i=0; i<3; i++){ BB[i].vec.clear(); BB[i].size=0; }}
 	// initial setup (reused in derived classes)
 	bool prologue_doFullRun(); 
 	// check whether bounding boxes are bounding
 	bool updateBboxes_doFullRun();
 
-	vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx);
+	vector<Particle::id_t> probeAabb(const Vector3r& mn, const Vector3r& mx) WOO_CXX11_OVERRIDE;
 
 	void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
 	void getLabeledObjects(const shared_ptr<LabelMapper>&) WOO_CXX11_OVERRIDE;
 
-	virtual void run();
+	virtual void run() WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(InsertionSortCollider,Collider,"\
 		Collider with O(n log(n)) complexity, using :obj:`Aabb` for bounds.\
 		\n\n\

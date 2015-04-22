@@ -75,6 +75,7 @@ Details on shape-specific columns can be always found by looking at the implemen
 * :obj:`~woo.dem.Sphere` has no shape-specific columns, it is identical with the bounding sphere.
 * :obj:`~woo.dem.Capsule` has 3 additional columns representing the half-shaft vector (half of :obj:`~woo.dem.Capsule.shaft` pointing in the direction of the local :math:`z`-axis) in global 3d space.
 * :obj:`~woo.dem.Ellipsoid` has 6 additional columns storing two 3-vectors:
+
   #. rotation vector (the :obj:`ori <woo.core.Node.ori>` quaternion converted to angle :math:`\alpha` and normalized axis :math:`\vec{a}`, then compute :math:`\alpha \vec{a}`)
   #. :obj:`~woo.dem.Ellipsoid.semiAxes`
 

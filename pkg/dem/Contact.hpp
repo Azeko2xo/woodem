@@ -72,7 +72,7 @@ struct Contact: public Object{
 	Particle::id_t pyId2() const;
 	Vector2i pyIds() const;
 	void pyResetPhys(){ phys.reset(); }
-	virtual string pyStr() const { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
+	virtual string pyStr() const WOO_CXX11_OVERRIDE { return "<Contact ##"+to_string(pyId1())+"+"+to_string(pyId2())+" @ "+lexical_cast<string>(this)+">"; }
 	// potentially unsafe pointer extraction (assert safety in debug builds only)
 	// only use when the particles are sure to exist and never return this pointer anywhere
 	// we call it "leak" to make this very explicit

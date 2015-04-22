@@ -7,15 +7,15 @@
 #endif
 
 struct ForceResetter: public Engine{
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	void run();
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
+	void run() WOO_CXX11_OVERRIDE;
 	#define woo_dem_ForceResetter__CLASS_BASE_DOC ForceResetter,Engine,"Reset forces on nodes in DEM field."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_ForceResetter__CLASS_BASE_DOC);
 };
 WOO_REGISTER_OBJECT(ForceResetter);
 
 struct Leapfrog: public Engine {
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 
 	void nonviscDamp1st(Vector3r& force, const Vector3r& vel);
 	void nonviscDamp2nd(const Real& dt, const Vector3r& force, const Vector3r& vel, Vector3r& accel);

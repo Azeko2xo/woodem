@@ -147,5 +147,5 @@ class FunctorWrapper //: public Object
 		virtual ResultType goReverse(	Parm1,Parm2,Parm3,Parm4,Parm5,Parm6,Parm7) 			{ return error(7); };
 };
 
-#define DEFINE_FUNCTOR_ORDER_2D(class1,class2) public: virtual std::string checkOrder() const{ return (string(#class1)+" "+string(#class2));}
+#define DEFINE_FUNCTOR_ORDER_2D(class1,class2) public: virtual std::string checkOrder() const WOO_CXX11_OVERRIDE { return (string(#class1)+" "+string(#class2));}
 

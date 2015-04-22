@@ -30,7 +30,7 @@ WOO_REGISTER_OBJECT(GridBound);
 
 #ifdef WOO_OPENGL
 struct Gl1_GridBound: public GlBoundFunctor{
-	void go(const shared_ptr<Bound>&){}
+	void go(const shared_ptr<Bound>&) WOO_CXX11_OVERRIDE {}
 	RENDERS(GridBound);
 	WOO_CLASS_BASE_DOC(Gl1_GridBound,GlBoundFunctor,"Render :obj:`GridBound` objects).");
 };
@@ -45,7 +45,7 @@ struct GridBoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type
 WOO_REGISTER_OBJECT(GridBoundFunctor);
 
 struct GridBoundDispatcher: public Dispatcher1D</* functor type*/GridBoundFunctor>{
-	void run(){}
+	void run() WOO_CXX11_OVERRIDE {}
 	WOO_DISPATCHER1D_FUNCTOR_DOC_ATTRS_CTOR_PY(GridBoundDispatcher,GridBoundFunctor,/*optional doc*/,
 		/*additional attrs*/
 		,/*ctor*/,/*py*/

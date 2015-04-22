@@ -5,7 +5,7 @@
 
 struct ConveyorInlet: public Inlet{
 	WOO_DECL_LOGGER;
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	Real packVol() const;
 	void sortPacking(const Real& zTrimVol=-1);
 	void postLoad(ConveyorInlet&,void*);
@@ -14,12 +14,12 @@ struct ConveyorInlet: public Inlet{
 	void nodeLeavesBarrier(const shared_ptr<Node>& p);
 	void setAttachedParticlesColor(const shared_ptr<Node>& n, Real c);
 	#ifdef WOO_OPENGL
-		void render(const GLViewInfo&){
+		void render(const GLViewInfo&) WOO_CXX11_OVERRIDE{
 			if(isnan(glColor)) return;
 			Inlet::renderMassAndRate(node->pos);
 		}
 	#endif
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	vector<shared_ptr<Node>> pyBarrier() const { return vector<shared_ptr<Node>>(barrier.begin(),barrier.end()); }
 	void pyClear(){ mass=0; num=0; genDiamMassTime.clear(); }
 	bool hasClumps(){ return !clumps.empty(); }

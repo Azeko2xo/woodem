@@ -3,7 +3,7 @@
 #include<woo/pkg/dem/Particle.hpp>
 
 struct HarmonicOscillation: public Impose{
-	void velocity(const Scene* scene, const shared_ptr<Node>& n){
+	void velocity(const Scene* scene, const shared_ptr<Node>& n) WOO_CXX11_OVERRIDE {
 		// http://en.wikipedia.org/wiki/Simple_harmonic_motion
 		Real omega=2*M_PI*freq;
 		Real vMag=amp*omega*cos(omega*(scene->time-t0));
@@ -45,7 +45,7 @@ struct StableCircularOrbit: public CircularOrbit {
 WOO_REGISTER_OBJECT(StableCircularOrbit);
 
 struct AlignedHarmonicOscillations: public Impose{
-	void velocity(const Scene* scene, const shared_ptr<Node>& n){
+	void velocity(const Scene* scene, const shared_ptr<Node>& n) WOO_CXX11_OVERRIDE {
 		Vector3r& vv(n->getData<DemData>().vel);
 		for(int ax:{0,1,2}){
 			if(isnan(freqs[ax])||isnan(amps[ax])) continue;
@@ -62,7 +62,7 @@ struct AlignedHarmonicOscillations: public Impose{
 WOO_REGISTER_OBJECT(AlignedHarmonicOscillations);
 
 struct RadialForce: public Impose{
-	void force(const Scene* scene, const shared_ptr<Node>& n);
+	void force(const Scene* scene, const shared_ptr<Node>& n) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(RadialForce,Impose,"Impose constant force towards an axis in 3d.",
 		((shared_ptr<Node>,nodeA,,,"First node defining the axis"))
 		((shared_ptr<Node>,nodeB,,,"Second node defining the axis"))
@@ -73,8 +73,8 @@ struct RadialForce: public Impose{
 WOO_REGISTER_OBJECT(RadialForce);
 
 struct Local6Dofs: public Impose{
-	void velocity(const Scene* scene, const shared_ptr<Node>& n){ doImpose(scene,n,/*velocity*/true); }
-	void force(const Scene* scene, const shared_ptr<Node>& n)   { doImpose(scene,n,/*velocity*/false); }
+	void velocity(const Scene* scene, const shared_ptr<Node>& n) WOO_CXX11_OVERRIDE { doImpose(scene,n,/*velocity*/true); }
+	void force(const Scene* scene, const shared_ptr<Node>& n)   WOO_CXX11_OVERRIDE { doImpose(scene,n,/*velocity*/false); }
 	void doImpose(const Scene* scene, const shared_ptr<Node>& n, bool velocity);
 	void postLoad(Local6Dofs&,void*){
 		for(int i=0;i<6;i++) if(whats[i]!=0 && whats[i]!=Impose::FORCE && whats[i]!=Impose::VELOCITY) throw std::runtime_error("Local6Dofs.whats components must be 0, "+to_string(Impose::FORCE)+" or "+to_string(Impose::VELOCITY)+" (whats["+to_string(i)+"] invalid: "+lexical_cast<string>(whats.transpose())+")");
@@ -89,7 +89,7 @@ struct Local6Dofs: public Impose{
 WOO_REGISTER_OBJECT(Local6Dofs);
 
 struct VariableAlignedRotation: public Impose{
-	void velocity(const Scene* scene, const shared_ptr<Node>& n);
+	void velocity(const Scene* scene, const shared_ptr<Node>& n) WOO_CXX11_OVERRIDE;
 	void postLoad(VariableAlignedRotation&,void*);
 	size_t _interpPos; // cookie for interpolation routine, does not need to be saved
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR(VariableAlignedRotation,Impose,"Impose piecewise-linear angular valocity along :obj:`axis`, based on the :obj:`timeAngVel`.",

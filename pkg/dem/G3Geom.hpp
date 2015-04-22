@@ -21,7 +21,7 @@ struct G3Geom: public CGeom{
 WOO_REGISTER_OBJECT(G3Geom);
 
 struct Cg2_Sphere_Sphere_G3Geom: public CGeomFunctor{
-	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Sphere_Sphere_G3Geom,CGeomFunctor,"Incrementally compute :obj:`G3Geom` for contact of 2 spheres. Detailed documentation in py/_extraDocs.py",
 		((bool,noRatch,true,,"FIXME: document what it really does."))
 		((bool,useAlpha,true,,"Use alpha correction proposed by McNamara, see source code for details"))
@@ -33,7 +33,7 @@ struct Cg2_Sphere_Sphere_G3Geom: public CGeomFunctor{
 WOO_REGISTER_OBJECT(Cg2_Sphere_Sphere_G3Geom);
 
 struct Cg2_Wall_Sphere_G3Geom: public CGeomFunctor{
-	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C);
+	virtual bool go(const shared_ptr<Shape>& s1, const shared_ptr<Shape>& s2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS(Cg2_Wall_Sphere_G3Geom,CGeomFunctor,"Incrementally compute :obj:`G3Geom` for contact of 2 spheres. Detailed documentation in py/_extraDocs.py",
 	);
 	FUNCTOR2D(Wall,Sphere);

@@ -6,10 +6,10 @@
 #include<woo/lib/sphere-pack/SpherePack.hpp>
 
 struct AnisoPorosityAnalyzer: public Engine {
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	DemField* dem;
 	SpherePack pack;
-	virtual void run();
+	virtual void run() WOO_CXX11_OVERRIDE;
 	static vector<Vector3r> splitRay(Real theta, Real phi, Vector3r pt0=Vector3r::Zero(), const Matrix3r& T=Matrix3r::Identity());
 	Real relSolid(Real theta, Real phi, Vector3r pt0=Vector3r::Zero(), bool vis=false);
 	// _check variants to be called from python (safe scene setup etc)
@@ -46,10 +46,10 @@ WOO_REGISTER_OBJECT(AnisoPorosityAnalyzer);
 class GlExtra_AnisoPorosityAnalyzer: public GlExtraDrawer{
 	public:
 	WOO_DECL_LOGGER;
-	virtual void render();
+	virtual void render() WOO_CXX11_OVERRIDE;
 	Real idColor(int id){ return (id%idMod)*1./(idMod-1); }
 	WOO_CLASS_BASE_DOC_ATTRS(GlExtra_AnisoPorosityAnalyzer,GlExtraDrawer,"Find an instance of :obj:`LawTester` and show visually its data.",
-		((shared_ptr<AnisoPorosityAnalyzer>,analyzer,,AttrTrait<>().noGui(),"Associated :obj:`AnisoPorosityAnalyzer` object."))
+		((shared_ptr<AnisoPorosityAnalyzer>,analyzer,,AttrTrait<>(),"Associated :obj:`AnisoPorosityAnalyzer` object."))
 		((int,wd,2,,"Segment line width"))
 		((Vector2i,wd_range,Vector2i(1,10),AttrTrait<>().noGui(),"Range for wd"))
 		((int,num,2,,"Number to show at the segment middle: 0 = nothing, 1 = particle id, 2 = intersected length"))

@@ -24,7 +24,7 @@ WOO_REGISTER_OBJECT(Aabb);
 
 #ifdef WOO_OPENGL
 struct Gl1_Aabb: public GlBoundFunctor{
-	virtual void go(const shared_ptr<Bound>&);
+	virtual void go(const shared_ptr<Bound>&) WOO_CXX11_OVERRIDE;
 	RENDERS(Aabb);
 	#define woo_dem_Gl1_Aabb__CLASS_BASE_DOC Gl1_Aabb,GlBoundFunctor,"Render Axis-aligned bounding box (:obj:`woo.dem.Aabb`)."
 	WOO_DECL__CLASS_BASE_DOC(woo_dem_Gl1_Aabb__CLASS_BASE_DOC);
@@ -40,7 +40,7 @@ struct BoundFunctor: public Functor1D</*dispatch types*/ Shape,/*return type*/ v
 WOO_REGISTER_OBJECT(BoundFunctor);
 
 struct BoundDispatcher: public Dispatcher1D</* functor type*/ BoundFunctor>{
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	WOO_DISPATCHER1D_FUNCTOR_DOC_ATTRS_CTOR_PY(BoundDispatcher,BoundFunctor,/*optional doc*/,
 		/*additional attrs*/
 		,/*ctor*/,/*py*/

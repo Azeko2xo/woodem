@@ -5,7 +5,7 @@
 
 
 struct Gl1_DemField: public GlFieldFunctor{
-	virtual void go(const shared_ptr<Field>&, GLViewInfo*);
+	virtual void go(const shared_ptr<Field>&, GLViewInfo*) WOO_CXX11_OVERRIDE;
 	GLViewInfo* viewInfo;
 	shared_ptr<DemField> dem; // used by do* methods
 	void doShape();

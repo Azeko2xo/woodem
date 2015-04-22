@@ -56,19 +56,19 @@ if not version:
 		try:
 			r0=os.popen("git rev-list HEAD --count 2>/dev/null").readlines()[0][:-1]
 			r1=os.popen("git log -1 --format='%h'").readlines()[0][:-1]
-			revno='r'+r0+'-git-'+r1
+			revno=r0+'+git.'+r1
 		except: pass
 	elif os.path.exists('.bzr'):
 		try:
 			# http://stackoverflow.com/questions/3630893/determining-the-bazaar-version-number-from-python-without-calling-bzr
 			from bzrlib.branch import BzrBranch
 			branch = BzrBranch.open_containing('.')[0]
-			revno='r'+str(branch.last_revision_info()[0])+'-bzr'
+			revno=str(branch.last_revision_info()[0])+'+bzr'
 		except: pass
 	else:
 		print('WARN: unable to determine revision number (no .git or .bzr here, or getting revision failed).')
-		revno='na'
-	version='1.0+'+revno
+		revno='0+na'
+	version='1.0.'+revno
 	
 
 ##

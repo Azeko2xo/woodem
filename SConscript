@@ -133,7 +133,7 @@ Summary: Discrete dynamic compuations, especially granular mechanics.
 Home-page: http://www.woodem.eu
 Author: Václav Šmilauer
 Author-email: eu@doxos.eu
-'''.format(version='0.99-'+env['realVersion']))])
+'''.format(version=env['realVersion']))])
 
 # install data files
 # accessible through pkg_resources

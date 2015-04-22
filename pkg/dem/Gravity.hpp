@@ -3,8 +3,8 @@
 #include<woo/pkg/dem/Particle.hpp>
 
 struct AxialGravity: public Engine {
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	virtual void run();
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
+	virtual void run() WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS(AxialGravity,Engine,"Apply acceleration (independent of distance) directed towards an axis.",
 		((Vector3r,axisPt,Vector3r::Zero(),,"Point through which the axis is passing."))
 		((Vector3r,axisDir,Vector3r::UnitX(),,"direction of the gravity axis (will be normalized automatically)"))

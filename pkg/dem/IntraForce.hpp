@@ -19,9 +19,9 @@ struct IntraFunctor: public Functor2D<
 WOO_REGISTER_OBJECT(IntraFunctor);
 
 struct IntraForce: public Dispatcher2D</* functor type*/ IntraFunctor, /* autosymmetry*/ false>{
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
 	void addIntraStiffness(const shared_ptr<Particle>&, const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot);
-	void run();
+	void run() WOO_CXX11_OVERRIDE;
 	WOO_DISPATCHER2D_FUNCTOR_DOC_ATTRS_CTOR_PY(IntraForce,IntraFunctor,/*ClassObject instantiated by the macro*/.doc("Apply internal forces on integration nodes, by calling appropriate :obj:`IntraFunctor` objects.").section("Internal forces","TODO",{"IntraFunctor"}),/*attrs*/,/*ctor*/,/*py*/);
 	WOO_DECL_LOGGER;
 };

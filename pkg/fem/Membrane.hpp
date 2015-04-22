@@ -77,7 +77,7 @@ WOO_REGISTER_OBJECT(In2_Membrane_FrictMat);
 #ifdef WOO_OPENGL
 #include<woo/pkg/gl/Functors.hpp>
 struct Gl1_Membrane: public Gl1_Facet{	
-	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&);
+	void go(const shared_ptr<Shape>&, const Vector3r&, bool, const GLViewInfo&) WOO_CXX11_OVERRIDE;
 	void drawLocalDisplacement(const Vector2r& nodePt, const Vector2r& xy, const shared_ptr<ScalarRange>& range, bool split, char arrow, int lineWd, const Real z=NaN);
 	RENDERS(Membrane);
 	WOO_CLASS_BASE_DOC_STATICATTRS(Gl1_Membrane,Gl1_Facet,"Renders :obj:`Membrane` object; :obj:`Facet` itself is rendered via :obj:`Gl1_Facet`.",

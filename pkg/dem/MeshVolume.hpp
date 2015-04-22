@@ -15,8 +15,8 @@ struct MeshVolume: public PeriodicEngine{
 	std::unique_ptr<GtsSurface> surface;
 	void init();
 	void updateVertices();
-	bool acceptsField(Field* f){ return dynamic_cast<DemField*>(f); }
-	void run();
+	bool acceptsField(Field* f) WOO_CXX11_OVERRIDE { return dynamic_cast<DemField*>(f); }
+	void run() WOO_CXX11_OVERRIDE;
 	Real pyNetVol() const{ return vol-thickVol; }
 	WOO_DECL_LOGGER;
 	WOO_CLASS_BASE_DOC_ATTRS_CTOR_PY(MeshVolume,PeriodicEngine,"Compute volume of (possibly deforming) closed triangulated surface; depends on the *gts* feature.",

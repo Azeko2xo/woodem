@@ -24,9 +24,9 @@
 *********************************** SnapshotEngine ***************************
 *****************************************************************************/
 struct SnapshotEngine: public PeriodicEngine{
-	virtual void run();
-	virtual bool needsField(){ return false; }
-	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d);
+	virtual void run() WOO_CXX11_OVERRIDE;
+	virtual bool needsField() WOO_CXX11_OVERRIDE { return false; }
+	virtual void pyHandleCustomCtorArgs(py::tuple& t, py::dict& d) WOO_CXX11_OVERRIDE;
 	WOO_CLASS_BASE_DOC_ATTRS(SnapshotEngine,PeriodicEngine,"Periodically save snapshots of GLView(s) as .png files. Files are named :obj:`fileBase` + :obj:`counter` + ``.png`` (counter is left-padded by 0s, i.e. snap00004.png).",
 		((string,fileBase,"",,"Basename for snapshots"))
 		((string,format,"PNG",AttrTrait<>().choice({"JPEG","PNG","EPS","PS","PPM","BMP"}),"Format of snapshots (one of JPEG, PNG, EPS, PS, PPM, BMP) `QGLViewer documentation <http://www.libqglviewer.com/refManual/classQGLViewer.html#abbb1add55632dced395e2f1b78ef491c>`_. File extension will be lowercased :obj:`format`. Validity of format is not checked."))
@@ -167,9 +167,9 @@ class GLViewer : public QGLViewer
 		qglviewer::Vec displayedSceneCenter();
 
 		//! Adds our attributes to the QGLViewer state that can be saved
-		QDomElement domElement(const QString& name, QDomDocument& document) const;
+		QDomElement domElement(const QString& name, QDomDocument& document) const  WOO_CXX11_OVERRIDE;
 		//! Adds our attributes to the QGLViewer state that can be restored
-		void initFromDOMElement(const QDomElement& element);
+		void initFromDOMElement(const QDomElement& element) WOO_CXX11_OVERRIDE;
 
 		// if defined, snapshot will be saved to this file right after being drawn and the string will be reset.
 		// this way the caller will be notified of the frame being saved successfully.
@@ -186,18 +186,18 @@ class GLViewer : public QGLViewer
 
 		WOO_DECL_LOGGER;
 	protected:
-		virtual void keyPressEvent(QKeyEvent *e);
-		virtual void postDraw();
+		virtual void keyPressEvent(QKeyEvent *e) WOO_CXX11_OVERRIDE;
+		virtual void postDraw() WOO_CXX11_OVERRIDE;
 		// overridden in the player that doesn't get time from system clock but from the db
 		virtual string getRealTimeString();
-		virtual void closeEvent(QCloseEvent *e);
-		virtual void postSelection(const QPoint& point);
-		virtual void endSelection(const QPoint &point);
-		virtual void mouseDoubleClickEvent(QMouseEvent *e);
-		virtual void wheelEvent(QWheelEvent* e);
+		virtual void closeEvent(QCloseEvent *e) WOO_CXX11_OVERRIDE;
+		virtual void postSelection(const QPoint& point) WOO_CXX11_OVERRIDE;
+		virtual void endSelection(const QPoint &point) WOO_CXX11_OVERRIDE;
+		virtual void mouseDoubleClickEvent(QMouseEvent *e) WOO_CXX11_OVERRIDE;
+		virtual void wheelEvent(QWheelEvent* e) WOO_CXX11_OVERRIDE;
 		// hijacked to optionally freeze cursor when rotating
-		virtual void mouseMoveEvent(QMouseEvent *e);
-		virtual void mousePressEvent(QMouseEvent *e);
+		virtual void mouseMoveEvent(QMouseEvent *e) WOO_CXX11_OVERRIDE;
+		virtual void mousePressEvent(QMouseEvent *e) WOO_CXX11_OVERRIDE;
 };
 
 /*! Get unconditional lock on a GL view.
