@@ -331,7 +331,12 @@ void ShapePack::fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemFiel
 }
 
 void ShapePack::toDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const shared_ptr<Material>& mat, int mask, Real color){
-	if(cellSize!=Vector3r::Zero()) throw std::runtime_error("ShapePack.toDem: cellSize (PBC) not supported yet.");
+	if(cellSize!=Vector3r::Zero()){
+		scene->isPeriodic=true;
+		scene->cell->setBox(cellSize);
+	} else {
+		scene->isPeriodic=false;
+	}
 	for(const auto& rr: raws){
 		Real _color=(isnan(color)?Mathr::UnitRandom():color);
 		vector<shared_ptr<Node>> nodes;

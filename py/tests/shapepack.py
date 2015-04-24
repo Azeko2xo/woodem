@@ -28,6 +28,7 @@ class TestShapePack(unittest.TestCase):
 		self.assert_(len(sp.raws)==3)
 		self.assert_(type(sp.raws[1])==SphereClumpGeom) # automatic conversion for sphere-only clumps
 		self.assert_(sp.raws[2].rawShapes[2].className=='Capsule')
+		self.assert_(sp.cellSize[0]==1.)
 		# print sp.raws
 	def testFromSim(self):
 		'ShapePack: from/to simulation with particles'
@@ -53,7 +54,11 @@ class TestShapePack(unittest.TestCase):
 		# to DEM
 		mat=woo.utils.defaultMaterial()
 		S2=woo.core.Scene(fields=[DemField()])
+		sp.cellSize=(.2,.2,.2)
 		sp.toDem(S2,S2.dem,mat=mat)
+		# test that periodicity is used
+		self.assert_(S2.periodic==True)
+		self.assert_(S2.cell.size[0]==.2)
 		# for p in S2.dem.par: print p, p.shape, p.shape.nodes[0]
 		# for n in S2.dem.nodes: print n
 		self.assert_(len(S2.dem.par)==3) # two spheres and capsule
