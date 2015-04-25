@@ -144,6 +144,12 @@ std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> SphereClumpGeo
 	ensureOk();
 	assert(centers.size()==radii.size());
 	const auto N=centers.size();
+	if(N==1){ // fast path for a single sphere (do not clump at all)
+		auto s=DemFuncs::makeSphere(radii[0]*scale,mat);
+		s->mask=mask;
+		s->shape->nodes[0]->pos=centers[0];
+		return std::make_tuple(vector<shared_ptr<Node>>({s->shape->nodes[0]}),vector<shared_ptr<Particle>>({s}));
+	}
 	vector<shared_ptr<Particle>> par(N);
 	auto n=make_shared<Node>();
 	auto cd=make_shared<ClumpData>();

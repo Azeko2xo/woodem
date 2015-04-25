@@ -137,7 +137,7 @@ void Leapfrog::run(){
 	/* temporary hack */
 	if(dem->nodes.empty() && !dontCollect){
 		int i=dem->collectNodes();
-		LOG_WARN("No DEM nodes were defined, "<<i<<" nodes were collected from particles.");
+		if(i>0) LOG_WARN("No DEM nodes were defined, "<<i<<" nodes were collected from particles.");
 	}
 	
 

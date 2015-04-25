@@ -37,7 +37,7 @@ struct ShapeClump: public Object{
 	// fill *pos* as average bounding sphere position, without calling compute
 	// virtual void ensureApproxPos(){ throw std::runtime_error("ShapeClump.ensureApproxPos: this class is not to be used directly, derived classes should override ensureApproxPos."); }
 	// if pos contains NaN, RawShape natural position and orientation are used
-	virtual std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask=0, Real scale=1.){  throw std::runtime_error("ShapeClump.makeParticles: this class is not be used directly, derived classes should override makeParticles."); }
+	virtual std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> makeParticles(const shared_ptr<Material>&, const Vector3r& pos, const Quaternionr& ori, int mask=DemField::defaultMovableMask, Real scale=1.){  throw std::runtime_error("ShapeClump.makeParticles: this class is not be used directly, derived classes should override makeParticles."); }
 	py::tuple pyMakeParticles(const shared_ptr<Material>& m, const Vector3r& p, const Quaternionr& o=Quaternionr::Identity(), Real scale=1., int mask=0){ const auto& tup=makeParticles(m,p,o,mask,scale); return py::make_tuple(std::get<0>(tup),std::get<1>(tup)); }
 	virtual void translate(const Vector3r& offset){  throw std::runtime_error("ShapeClump.translate: this class is not be used directly, derived classes should override translate."); }
 	virtual shared_ptr<ShapeClump> copy() const{  throw std::runtime_error("ShapeClump.copy: this class is not be used directly, derived classes should override copy."); }
@@ -54,7 +54,7 @@ struct ShapeClump: public Object{
 		((bool,clumped,true,AttrTrait<>().readonly(),"Whether nodes of this shape are clumped together when the particle is created (so far, clumped shapes *only* are produced).")) \
 		, /* py */ \
 		.def("recompute",&ShapeClump::recompute,(py::arg("div")=5,py::arg("failOk")=false,py::arg("fastOnly")=false),"Recompute principal axes of the clump, using *div* for subdivision (see :obj:`div` for the semantics). *failOk* (silently return in case of invalid data) and *fastOnly* (return if there is lots of cells in subdivision) are only to be used internally.") \
-		.def("makeParticles",&ShapeClump::pyMakeParticles,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=0),"Create particle(s) as described by this geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple ([Node,...],[Particle,..]).") \
+		.def("makeParticles",&ShapeClump::pyMakeParticles,(py::arg("mat"),py::arg("pos"),py::arg("ori")=Quaternionr::Identity(),py::arg("scale")=1.,py::arg("mask")=(int)DemField::defaultMovableMask),"Create particle(s) as described by this geometry, positioned in *pos* and rotated with *ori*. Geometry will be scaled by *scale*. Returns tuple ([Node,...],[Particle,..]).") \
 		; woo::converters_cxxVector_pyList_2way<shared_ptr<ShapeClump>>();
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_ShapeClump__CLASS_BASE_DOC_ATTRS_PY);
 };
@@ -98,7 +98,7 @@ struct ShapePack: public Object{
 	void recomputeAll();
 	bool shapeSupported(const shared_ptr<Shape>&) const;
 	void fromDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, int mask, bool skipUnsupported=true);
-	void toDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const shared_ptr<Material>& mat, int mask=0, Real color=NaN);
+	void toDem(const shared_ptr<Scene>& scene, const shared_ptr<DemField>& dem, const shared_ptr<Material>& mat, int mask=DemField::defaultMovableMask, Real color=NaN);
 	void saveTxt(const string& out) const;
 	void loadTxt(const string& in);
 	// mostly for testing only
@@ -127,7 +127,7 @@ struct ShapePack: public Object{
 			.def("load",&ShapePack::loadTxt).def("save",&ShapePack::saveTxt) /* SpherePack compat names */ \
 		.def("add",&ShapePack::add,(py::arg("shapes"),py::arg("clumped")=true)) \
 		.def("fromDem",&ShapePack::fromDem,(py::arg("scene"),py::arg("dem"),py::arg("mask")=0,py::arg("skipUnsupported")=true)) \
-		.def("toDem",&ShapePack::toDem,(py::arg("scene"),py::arg("dem"),py::arg("mat"),py::arg("mask")=0,py::arg("color")=NaN)) \
+		.def("toDem",&ShapePack::toDem,(py::arg("scene"),py::arg("dem"),py::arg("mat"),py::arg("mask")=(int)DemField::defaultMovableMask,py::arg("color")=NaN)) \
 		.def("filtered",&ShapePack::filtered,(py::arg("predicate"),py::arg("recenter")=-1)) \
 		.def("filter",&ShapePack::filter,(py::arg("predicate"),py::arg("recenter")=-1)) \
 		.def("solidVolume",&ShapePack::solidVolume) \

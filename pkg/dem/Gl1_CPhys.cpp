@@ -29,7 +29,7 @@ void Gl1_CPhys::go(const shared_ptr<CPhys>& cp, const shared_ptr<Contact>& C, co
 	if(r<viewInfo.sceneRadius*1e-4 || isnan(r)) return;
 	Vector3r color=shearColor?shearRange->color(Vector2r(cp->force[1],cp->force[2]).norm()):range->color(fn);
 	const Particle *pA=C->leakPA(), *pB=C->leakPB();
-	Vector3r A=(dynamic_pointer_cast<Sphere>(pA->shape)?pA->shape->nodes[0]->pos:C->geom->node->pos), B=pB->shape->avgNodePos()+((scene->isPeriodic)?(scene->cell->intrShiftPos(C->cellDist)):Vector3r::Zero());
+	Vector3r A=(pA->isA<Sphere>()?pA->shape->nodes[0]->pos:C->geom->node->pos), B=pB->shape->avgNodePos()+((scene->isPeriodic)?(scene->cell->intrShiftPos(C->cellDist)):Vector3r::Zero());
 	if(pA->shape->nodes[0]->hasData<GlData>() && pB->shape->nodes[0]->hasData<GlData>()){
 		const GlData &glA=pA->shape->nodes[0]->getData<GlData>(), &glB=pB->shape->nodes[0]->getData<GlData>();
 		A+=glA.dGlPos; B+=glB.dGlPos;

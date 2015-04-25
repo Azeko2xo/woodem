@@ -391,7 +391,9 @@ class LineRef:
 						self.annotation.xytext=(0,0)
 						self.annotation.set_text('') # make invisible, place anywhere
 					else:
-						self.annotation.xytext=(x,y)
+						#
+						if hasattr(self.annotation,'xyann'): self.annotation.xyann=(x,y) # newer MPL versions (>=1.4)
+						else: self.annotation.xyann=(x,y)
 						self.annotation.set_text(self.annotation.annotateFmt.format(xy=(float(x),float(y))))
 			except TypeError: pass # this happens at i386 with empty data, saying TypeError: buffer is too small for requested array
 
@@ -433,7 +435,7 @@ def createPlots(P,subPlots=True,noShow=False,replace=True,scatterSize=60,wider=F
 		if not subPlots:
 			figs.append(_newFig())
 			axes=figs[-1].add_subplot(1,1,1)
-		else: axes=figs[-1].add_subplot(subRows,subCols,nPlot)
+		else: axes=figs[-1].add_subplot(subRows,subCols,nPlot+1) # nPlot is 1-based in mpl, for matlab comatibility
 		axes.grid(True)
 		if plots[p]==None: # image plot
 			if not pStrip in imgData.keys(): imgData[pStrip]=[]

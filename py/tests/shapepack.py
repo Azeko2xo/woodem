@@ -30,6 +30,17 @@ class TestShapePack(unittest.TestCase):
 		self.assert_(sp.raws[2].rawShapes[2].className=='Capsule')
 		self.assert_(sp.cellSize[0]==1.)
 		# print sp.raws
+	def testSingle(self):
+		'ShapePack: single particles not clumped when inserted into simulation'
+		S=woo.core.Scene(fields=[DemField()])
+		sp=ShapePack(raws=[SphereClumpGeom(centers=[(1,1,1)],radii=[.1]),RawShapeClump(rawShapes=[RawShape(className='Sphere',center=(2,2,2),radius=.2,raw=[])])])
+		mat=woo.utils.defaultMaterial()
+		sp.toDem(S,S.dem,mat=mat)
+		self.assert_(len(S.dem.nodes)==2)
+		self.assert_(S.dem.par[0].pos==(1,1,1))
+		self.assert_(S.dem.par[1].shape.radius==.2)
+		self.assert_(not S.dem.par[0].shape.nodes[0].dem.clumped)
+		self.assert_(not S.dem.par[1].shape.nodes[0].dem.clumped)
 	def testFromSim(self):
 		'ShapePack: from/to simulation with particles'
 		S=woo.core.Scene(fields=[DemField()])
