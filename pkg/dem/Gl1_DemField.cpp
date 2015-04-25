@@ -442,6 +442,7 @@ void Gl1_DemField::doContactNodes(){
 
 
 void Gl1_DemField::doCPhys(){
+	glEnable(GL_LIGHTING);
 	Renderer::cPhysDispatcher.scene=scene; Renderer::cPhysDispatcher.updateScenePtr();
 	boost::mutex::scoped_lock lock(dem->contacts->manipMutex);
 	FOREACH(const shared_ptr<Contact>& C, *dem->contacts){
@@ -457,7 +458,7 @@ void Gl1_DemField::doCPhys(){
 		//assert(C->leakPA()->shape && C->leakPB()->shape);
 		//assert(C->leakPA()->shape->nodes.size()>0); assert(C->leakPB()->shape->nodes.size()>0);
 		if(!geom || !phys) continue;
-		// glScopedName name(C,geom->node);
+		Renderer::glScopedName name(C,geom->node);
 		Renderer::cPhysDispatcher(phys,C,*viewInfo);
 	}
 }

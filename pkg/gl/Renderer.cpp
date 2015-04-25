@@ -91,6 +91,7 @@ Real Renderer::logoWd;
 
 int Renderer::maxFps;
 Real Renderer::renderTime;
+Real Renderer::fastRenderTime;
 
 void Renderer::init(){
 	LOG_DEBUG("Renderer::init()");

@@ -163,6 +163,7 @@ struct Renderer: public Object{
 
 		((int,maxFps,10,AttrTrait<>().startGroup("Performance"),"Maximum frame rate for the OpenGL display"))
 		((Real,renderTime,NaN,AttrTrait<>().readonly().timeUnit(),"Time for rendering one frame (smoothed)"))
+		((Real,fastRenderTime,NaN,AttrTrait<>().readonly().timeUnit(),"Time for fast-rendering one frame (smoothed)"))
 		,/*py*/
 		//.def("render",&Renderer::pyRender,"Render the scene in the current OpenGL context.")
 			.def_readonly("shapeDispatcher",&Renderer::shapeDispatcher)

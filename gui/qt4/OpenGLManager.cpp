@@ -40,8 +40,9 @@ void OpenGLManager::timerEvent(QTimerEvent* event){
 	if(measure){
 		frameMeasureTime=0;
 		t=1e-9*(woo::TimingInfo::getNow(/*evenIfDisabled*/true)-t); // in seconds
-		if(isnan(Renderer::renderTime)) Renderer::renderTime=t;
-		Renderer::renderTime=.6*Renderer::renderTime+.4*(t);
+		Real& dt(Renderer::fastDraw?Renderer::fastRenderTime:Renderer::renderTime);
+		if(isnan(dt)) dt=t;
+		dt=.6*dt+.4*(t);
 	} else {
 		frameMeasureTime++;
 	}

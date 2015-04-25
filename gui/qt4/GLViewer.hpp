@@ -139,9 +139,14 @@ class GLViewer : public QGLViewer
 		#if 0
 			virtual void paintGL();
 		#endif
-		// if we fastDraw was active already, FPS may go up temporarily, thus we keep using fastDraw once it was already active. fastDraw will be set to false when camera manipulation ends.
-		void fastDraw() WOO_CXX11_OVERRIDE { draw(/*withNames*/false,/*fast*/(currentFPS()<(int)(.5*Renderer::maxFps)));}
-		void draw() WOO_CXX11_OVERRIDE { draw(/*withNames*/false,/*fast*/(!hasFocus() && ((currentFPS()<.9*Renderer::maxFps && framesDone>100)))); }
+		// do fastDraw when regular (non-fast) rendering is slower than max FPS
+		// if rendering is faster, draw normally, sicne manipulation will not be slown down
+		void fastDraw() WOO_CXX11_OVERRIDE { draw(/*withNames*/false,/*fast*/!(Renderer::renderTime<(1./Renderer::maxFps))
+		);}
+		void draw() WOO_CXX11_OVERRIDE { draw(/*withNames*/false,
+			// /*fast*/(!hasFocus() && ((currentFPS()<.9*Renderer::maxFps && framesDone>100))));
+			/*fast*/(!hasFocus() && Renderer::renderTime>.9*(1./Renderer::maxFps)) && framesDone>100);
+		}
 		void drawWithNames() WOO_CXX11_OVERRIDE { draw(/*withNames*/true); }
 		// this one is not virtual
 		void draw(bool withNames, bool fast=false);
