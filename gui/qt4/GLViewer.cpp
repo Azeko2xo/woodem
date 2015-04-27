@@ -158,7 +158,7 @@ GLViewer::GLViewer(int _viewId, QGLWidget* shareWidget): QGLViewer(/*parent*/(QW
 
 	if(manipulatedFrame()==0) setManipulatedFrame(new qglviewer::ManipulatedFrame());
 
-	xyPlaneConstraint=shared_ptr<qglviewer::LocalConstraint>(new qglviewer::LocalConstraint());
+	xyPlaneConstraint=make_shared<qglviewer::LocalConstraint>();
 	//xyPlaneConstraint->setTranslationConstraint(qglviewer::AxisPlaneConstraint::AXIS,qglviewer::Vec(0,0,1));
 	//xyPlaneConstraint->setRotationConstraint(qglviewer::AxisPlaneConstraint::FORBIDDEN,qglviewer::Vec(0,0,1));
 	manipulatedFrame()->setConstraint(NULL);
@@ -332,7 +332,7 @@ void GLViewer::useDisplayParameters(size_t n, bool fromHandler){
 void GLViewer::saveDisplayParameters(size_t n){
 	LOG_DEBUG("Saving display parameters to #"<<n);
 	vector<shared_ptr<DisplayParameters> >& dispParams=Master::instance().getScene()->dispParams;
-	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(shared_ptr<DisplayParameters>(new DisplayParameters));} assert(n<dispParams.size());
+	if(dispParams.size()<=n){while(dispParams.size()<=n) dispParams.push_back(make_shared<DisplayParameters>());} assert(n<dispParams.size());
 	shared_ptr<DisplayParameters>& dp=dispParams[n];
 	std::ostringstream oglre;
 	Renderer rendererDummyInstance;

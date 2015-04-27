@@ -39,7 +39,7 @@ struct Particle: public Object{
 	Vector3r& getVel() const; void setVel(const Vector3r&);
 	Vector3r& getAngVel() const; void setAngVel(const Vector3r&);
 	shared_ptr<Impose> getImpose() const; void setImpose(const shared_ptr<Impose>&);
-	Real getEk_any(bool trans, bool rot, Scene* scene=NULL) const;
+	Real getEk_any(bool trans, bool rot, shared_ptr<Scene> scene=shared_ptr<Scene>()) const;
 	Real getEk() const {return getEk_any(true,true); }
 	Real getEk_trans() const { return getEk_any(true,false); }
 	Real getEk_rot() const {return getEk_any(false,true); }
@@ -91,26 +91,27 @@ struct Particle: public Object{
 		((MapParticleContact,contacts,,AttrTrait<Attr::noSave|Attr::hidden>(),"Contacts of this particle, indexed by id of the other particle.")) \
 		/* ((int,flags,0,AttrTrait<Attr::hidden>(),"Various flags, only individually accesible from Python")) */ \
 		, /*py*/ \
-			.def("updateMassInertia",&Particle::updateMassInertia) \
-			.add_property("contacts",&Particle::pyContacts) \
-			.add_property("con",&Particle::pyCon) \
-			.add_property("tacts",&Particle::pyTacts) \
-			.add_property("allContacts",&Particle::pyAllContacts) \
-		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos)) \
-		.add_property("refPos",py::make_function(&Particle::getRefPos woo_dem_Particle__OPENGL__return_internal_reference ),py::make_function(&Particle::setRefPos)) \
-		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri)) \
-		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel)) \
-		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel)) \
-		.add_property("impose",&Particle::getImpose,&Particle::setImpose) \
-		.add_property("mass",&Particle::getMass) \
-		.add_property("inertia",&Particle::getInertia) \
-		.add_property("f",&Particle::getForce) \
-		.add_property("t",&Particle::getTorque) \
-		.add_property("nodes",&Particle::getNodes) \
-		.add_property("blocked",&Particle::getBlocked,&Particle::setBlocked) \
-		.add_property("Ek",&Particle::getEk,"Summary kinetic energy of the particle") \
-		.add_property("Ekt",&Particle::getEk_trans,"Translational kinetic energy of the particle") \
-		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle") \
+			.def("updateMassInertia",&Particle::updateMassInertia,"Internal use only. Recompute mass and inertia of all particle's nodes; this function is usually called by particle construction routines; interally calls ``Shape::updateMassInertia`` and only works for particles without shared nodes.") \
+			.add_property("contacts",&Particle::pyContacts,"Return all :obj:`real <Contact.real>` particle's contacts as dictionary mapping :obj:`other particles' IDs <Particle.id>` and obj:`Contact` objects.") \
+			.add_property("con",&Particle::pyCon,"Return list of :obj:`IDs <Particle.id>` of contacting particles (:obj:`~Contact.real` contacts only); shorthand for ``p.contacts.keys()``.") \
+			.add_property("tacts",&Particle::pyTacts,"Return list of :obj:`Contact` objects where this particle takes part (:obj:`~Contact.real` contacts only); shorthand for ``p.contact.values()``.") \
+			.add_property("allContacts",&Particle::pyAllContacts,"Return dictionary mapping :obj:`other particles' IDs <Particle.id` to :obj:`Contact` objects, including contacts which are *not* :obj:`~Contact.real`.") \
+		.add_property("pos",py::make_function(&Particle::getPos,py::return_internal_reference<>()),py::make_function(&Particle::setPos),"Particle position; shorthand for ``p.shape.nodes[0].pos`` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("ori",py::make_function(&Particle::getOri,py::return_internal_reference<>()),py::make_function(&Particle::setOri),"Particle orientation; shorthand for ``p.shape.nodes[0].ori`` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("refPos",py::make_function(&Particle::getRefPos woo_dem_Particle__OPENGL__return_internal_reference ),py::make_function(&Particle::setRefPos),"Reference particle position; shorthand for :obj:`p.shape.nodes[0].gl.refPos <woo.gl.GlData.refPos>`, and ``Vector3(nan,nan,nan)`` if :obj:`gl <GlData>` is not defined on the node.") \
+		.add_property("vel",py::make_function(&Particle::getVel,py::return_internal_reference<>()),py::make_function(&Particle::setVel),"Particle velocity; shorthand for :obj:`p.shape.nodes[0].dem.vel <DemData.vel>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("angVel",py::make_function(&Particle::getAngVel,py::return_internal_reference<>()),py::make_function(&Particle::setAngVel),"Particle angular velocity; shorthand for :obj:`p.shape.nodes[0].dem.angVel <DemData.angVel>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("impose",&Particle::getImpose,&Particle::setImpose,"Particle imposed constraints; shorthand for :obj:`p.shape.nodes[0].dem.impose <DemData.impose>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("mass",&Particle::getMass,"Particle mass; shorthand for :obj:`p.shape.nodes[0].dem.mass <DemData.mass>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("inertia",&Particle::getInertia,"Particle inertia; shorthand for :obj:`p.shape.nodes[0].dem.inertia <DemData.inertia>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("f",&Particle::getForce,"Force on particle; shorthand for :obj:`p.shape.nodes[0].dem.force <DemData.force>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("t",&Particle::getTorque,"Torque on particle; shorthand for :obj:`p.shape.nodes[0].dem.torque <DemData.force>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("blocked",&Particle::getBlocked,&Particle::setBlocked,"Blocked degrees of freedom of the particle; shorthand for :obj:`p.shape.nodes[0].dem.blocked <DemData.blocked>` -- uninodal particles only (raises exception otherwise).") \
+		.add_property("nodes",&Particle::getNodes,"List of particle nodes; shorthand for :obj:`p.shape.nodes <Shape.nodes>`.") \
+		.add_property("Ek",&Particle::getEk,"Summary kinetic energy of the particle, shorthand for ``p.Ekt+p.Ekr``.") \
+		.add_property("Ekt",&Particle::getEk_trans,"Translational kinetic energy of the particle, computed on-demand as :math:`\\frac{1}{2}m|\\vec{v}|^2` -- uninodal particles only (raises exception otherwise). Space deformation is not considered here, see :obj:`getEk`.") \
+		.add_property("Ekr",&Particle::getEk_rot,"Rotational kinetic energy of the particle, computed on-demand as :math:`\\frac{1}{2}\\vec{\\omega}^T\\mat{T}^T\\mat{I}\\mat{T}\\omega` (where :math:`\\mat{T}` is :obj:`p.shape.nodes[0].ori <woo.core.Node.ori>` as rotation matrix, :math:`\\mat{I}` is :obj:`p.shape.nodes[0].dem.inertia <DemData.inertia>` as diagonal matrix  -- uninodal particles only (raises exception otherwise).  Space deformation is not considered here, see :obj:`getEk`.") \
+		.def("getEk",&Particle::getEk_any,(py::arg("trans")=true,py::arg("rot")=true,py::arg("scene")=shared_ptr<Scene>()),"Compute kinetic energy (translational and/or rotational); when *scene* is given, only fluctuation linear/angular velocity will be considered if periodic boundary conditions are active.") \
 		.def("make",&Particle::make,(py::arg("shape"),py::arg("mat"),py::arg("fixed")=false),"Return Particle instance created from given shape and material; nodes with DemData are automatically added to the shape, mass and inertia is recomuted.").staticmethod("make") \
 		; \
 		woo::converters_cxxVector_pyList_2way<shared_ptr<Particle>>();

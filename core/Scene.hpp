@@ -175,9 +175,9 @@ struct Scene: public Object{
 		\
 		((vector<shared_ptr<Engine>>,engines,,,"Engines sequence in the simulation (direct access to the c++ sequence is shadowed by python property which access it indirectly).")) \
 		((vector<shared_ptr<Engine>>,_nextEngines,,AttrTrait<Attr::hidden>(),"Engines to be used from the next step on; is returned transparently by S.engines if in the middle of the loop (controlled by subStep>=0).")) \
-		((shared_ptr<EnergyTracker>,energy,new EnergyTracker,AttrTrait<Attr::readonly>().noGui(),"Energy values, if energy tracking is enabled.")) \
+		((shared_ptr<EnergyTracker>,energy,make_shared<EnergyTracker>(),AttrTrait<Attr::readonly>().noGui(),"Energy values, if energy tracking is enabled.")) \
 		((vector<shared_ptr<Field>>,fields,,AttrTrait<Attr::triggerPostLoad>().noGui(),"Defined simulation fields.")) \
-		((shared_ptr<Cell>,cell,new Cell,AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic.")) \
+		((shared_ptr<Cell>,cell,make_shared<Cell>(),AttrTrait<Attr::hidden>(),"Information on periodicity; only should be used if Scene::isPeriodic.")) \
 		((std::string,lastSave,,AttrTrait<Attr::readonly>(),"Name under which the simulation was saved for the last time; used for reloading the simulation. Updated automatically, don't change.")) \
 		((long,preSaveDuration,,AttrTrait<Attr::readonly>().noGui(),"Wall clock duration this Scene was alive before being saved last time; this count is incremented every time the scene is saved. When Scene is loaded, it is used to construct clock0 as current_local_time - lastSecDuration.")) \
 		woo_core_Scene__DisplayParameters__OPENGL \

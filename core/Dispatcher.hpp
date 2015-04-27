@@ -76,7 +76,7 @@ void Dispatcher_functors_set(shared_ptr<DispatcherT> self, std::vector<shared_pt
 //! Create dispatcher of given type, with functors given as list in argument
 template<typename DispatcherT>
 shared_ptr<DispatcherT> Dispatcher_ctor_list(const std::vector<shared_ptr<typename DispatcherT::functorType> >& functors){
-	shared_ptr<DispatcherT> instance(new DispatcherT);
+	auto instance=make_shared<DispatcherT>();
 	Dispatcher_functors_set<DispatcherT>(instance,functors);
 	return instance;
 }
@@ -119,12 +119,11 @@ class Dispatcher1D : public Dispatcher,
 		int getDimension() WOO_CXX11_OVERRIDE { return 1; }
 	
 		string getFunctorType() WOO_CXX11_OVERRIDE {
-			shared_ptr<FunctorType> eu(new FunctorType);
-			return eu->getClassName();
+			return FunctorType().getClassName();
 		}
 
 		string getBaseClassType(unsigned int i) WOO_CXX11_OVERRIDE {
-			if (i==0) { shared_ptr<baseClass> bc(new baseClass); return bc->getClassName(); }
+			if (i==0) { return baseClass().getClassName(); }
 			else return "";
 		}
 
@@ -170,12 +169,11 @@ class Dispatcher2D : public Dispatcher,
 		int getDimension() WOO_CXX11_OVERRIDE { return 2; }
 
 		string getFunctorType() WOO_CXX11_OVERRIDE {
-			shared_ptr<FunctorType> eu(new FunctorType);
-			return eu->getClassName();
+			return FunctorType().getClassName();
 		}
 		string getBaseClassType(unsigned int i) WOO_CXX11_OVERRIDE {
-			if (i==0){ shared_ptr<baseClass1> bc(new baseClass1); return bc->getClassName(); }
-			else if (i==1){ shared_ptr<baseClass2> bc(new baseClass2); return bc->getClassName();}
+			if (i==0){ return baseClass1().getClassName(); }
+			else if (i==1){ return baseClass2().getClassName(); }
 			else return "";
 		}
 	public:

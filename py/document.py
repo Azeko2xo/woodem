@@ -277,7 +277,7 @@ def classSrcHyperlink(klass):
 	hppLine=findFirstLine(woo.config.sourceRoot+'/'+hpp,r'^(.*\s)?(struct|class)\s+%s\s*({|:).*$'%klass.__name__)
 	cppLine=findFirstLine(woo.config.sourceRoot+'/'+cpp,r'^(.*\s)?%s::.*$'%klass.__name__)
 	ret=[]
-	if hppLine>0: ret+=['header :woosrc:`%s <%s#L%d>`'%(hpp,hpp,hppLine+1)]
+	if hppLine>0: ret+=[':woosrc:`%s <%s#L%d>`'%(hpp,hpp,hppLine+1)]
 	else:
 		if f2.endswith('.hpp'): ret+=[':woosrc:`%s <%s#L%d>`'%(hpp,hpp,klass._classTrait.line)]
 		else: print 'WARN: No header line found for %s in %s'%(klass.__name__,hpp)

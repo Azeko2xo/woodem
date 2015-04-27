@@ -98,7 +98,7 @@ Master::Master(){
 	defaultClDev=Vector2i(-1,-1);
 	
 	// create the initial master scene
-	scene=shared_ptr<Scene>(new Scene);
+	scene=make_shared<Scene>();
 	scene->postLoad(*scene,NULL); // this would not get called otherwise, causing troubles
 }
 

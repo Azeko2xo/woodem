@@ -223,7 +223,7 @@ std::string DemData::blocked_vec_get() const {
 
 void DemData::blocked_vec_set(const std::string& dofs){
 	flags&=~DOF_ALL; // reset DOF bits first
-	FOREACH(char c, dofs){
+	for(const char c: dofs){
 		#define _GET_DOF(DOF_ANY,ch) if(c==ch) { flags|=DemData::DOF_ANY; continue; }
 		_GET_DOF(DOF_X,'x'); _GET_DOF(DOF_Y,'y'); _GET_DOF(DOF_Z,'z'); _GET_DOF(DOF_RX,'X'); _GET_DOF(DOF_RY,'Y'); _GET_DOF(DOF_RZ,'Z');
 		#undef _GET_DOF
@@ -233,19 +233,19 @@ void DemData::blocked_vec_set(const std::string& dofs){
 
 
 Real DemData::getEk_any(const shared_ptr<Node>& n, bool trans, bool rot, Scene* scene){
-	assert(scene!=NULL);
+	// assert(scene!=NULL);
 	assert(n->hasData<DemData>());
 	const DemData& dyn=n->getData<DemData>();
 	Real ret=0.;
 	if(trans){
-		Vector3r fluctVel=scene->isPeriodic?scene->cell->pprevFluctVel(n->pos,dyn.vel,scene->dt):dyn.vel;
+		Vector3r fluctVel=(scene && scene->isPeriodic)?scene->cell->pprevFluctVel(n->pos,dyn.vel,scene->dt):dyn.vel;
 		Real Etrans=.5*(dyn.mass*(fluctVel.dot(fluctVel.transpose())));
 		ret+=Etrans;
 	}
 	if(rot){
 		Matrix3r T(n->ori);
 		Matrix3r mI(dyn.inertia.asDiagonal());
-		Vector3r fluctAngVel=scene->isPeriodic?scene->cell->pprevFluctAngVel(dyn.angVel):dyn.angVel;
+		Vector3r fluctAngVel=(scene && scene->isPeriodic)?scene->cell->pprevFluctAngVel(dyn.angVel):dyn.angVel;
 		Real Erot=.5*fluctAngVel.transpose().dot((T.transpose()*mI*T)*fluctAngVel);	
 		ret+=Erot;
 	}
@@ -329,10 +329,9 @@ Vector3r Particle::getTorque() const { checkNodes(); return shape->nodes[0]->get
 std::string Particle::getBlocked() const { checkNodes(); return shape->nodes[0]->getData<DemData>().blocked_vec_get(); }
 void Particle::setBlocked(const std::string& s){ checkNodes(); shape->nodes[0]->getData<DemData>().blocked_vec_set(s); }
 
-Real Particle::getEk_any(bool trans, bool rot, Scene* scene) const {
+Real Particle::getEk_any(bool trans, bool rot, shared_ptr<Scene> scene) const {
 	checkNodes();
-	if(!scene) scene=Master::instance().getScene().get();
-	return DemData::getEk_any(shape->nodes[0],trans,rot,scene);
+	return DemData::getEk_any(shape->nodes[0],trans,rot,scene.get());
 }
 
 

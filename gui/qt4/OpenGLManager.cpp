@@ -75,7 +75,7 @@ void OpenGLManager::timerEvent(QTimerEvent* event){
 void OpenGLManager::createViewSlot(){
 	boost::mutex::scoped_lock lock(viewsMutex);
 	if(views.size()==0){
-		views.push_back(shared_ptr<GLViewer>(new GLViewer(0,/*shareWidget*/(QGLWidget*)0)));
+		views.push_back(make_shared<GLViewer>(0,/*shareWidget*/(QGLWidget*)0));
 	} else {
 		throw runtime_error("Secondary views not supported");
 		//views.push_back(shared_ptr<GLViewer>(new GLViewer(views.size(),renderer,views[0].get())));

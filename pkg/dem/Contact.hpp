@@ -18,7 +18,7 @@ struct CGeom: public Object,public Indexable{
 	// XXX: is createIndex() called here at all??
 	#define woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_CTOR_PY \
 		CGeom,Object,ClassTrait().doc("Geometrical configuration of contact").section("Geometry","TODO",{"CGeomFunctor","CGeomDispatcher"}), \
-		((shared_ptr<Node>,node,new Node,,"Local coordinates definition.")) \
+		((shared_ptr<Node>,node,make_shared<Node>(),,"Local coordinates definition.")) \
 		,/*ctor*/ createIndex(); ,/*py*/WOO_PY_TOPINDEXABLE(CGeom);
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_CGeom__CLASS_BASE_DOC_ATTRS_CTOR_PY);
 	REGISTER_INDEX_COUNTER(CGeom);
@@ -101,12 +101,12 @@ struct Contact: public Object{
 		((Real,minDist00Sq,-1,AttrTrait<Attr::readonly>(),"Minimum distance between nodes[0] of both shapes so that the contact can exist. Set in ContactLoop by geometry functor once, and is used to check for possible contact without having to call the functor. If negative, not used. Currently, only Sphere-Sphere contacts use this information.")) \
 		((int,stepLastSeen,-1,AttrTrait<Attr::readonly>(),"")) \
 		((size_t,linIx,0,AttrTrait<Attr::readonly>().noGui(),"Position in the linear view (ContactContainer)")) \
-		, /*py*/ .add_property("id1",&Contact::pyId1).add_property("id2",&Contact::pyId2).add_property("real",&Contact::isReal).add_property("ids",&Contact::pyIds) \
+		, /*py*/ .add_property("id1",&Contact::pyId1,":obj:`Particle.id` of the first contacting particle.").add_property("id2",&Contact::pyId2,":obj:`Particle.id` of the second contacting particle.").add_property("real",&Contact::isReal,"Whether the contact is real (has :obj:`geom` and :obj:`phys`); unreal contacts are created by broadband collisions detection and have no physical significance.").add_property("ids",&Contact::pyIds,":obj:`IDs <Particle.id>` of both contacting particles as 2-tuple.") \
 		.def("dPos",&Contact::dPos_py,"Return position difference vector pB-pA, taking `Contact.cellDist` in account properly. Both particles must be uninodal, exception is raised otherwise.") \
 		.def("dist",&Contact::dist_py,"Shorthand for dPos.norm().") \
 		.add_property("pA",&Contact::pyPA,"First particle of the contact") \
 		.add_property("pB",&Contact::pyPB,"Second particle of the contact") \
-		.def("resetPhys",&Contact::pyResetPhys,"Set *phys* to *None* (to force its re-evaluation)") \
+		.def("resetPhys",&Contact::pyResetPhys,"Set :obj:`phys` to *None* (to force its re-evaluation)") \
 		.def("isFresh",&Contact::pyIsFresh,(py::arg("scene")),"Say whether this contact has just been created. Equivalent to ``C.stepCreated==scene.step``.") \
 		; \
 		woo::converters_cxxVector_pyList_2way<shared_ptr<Contact>>();

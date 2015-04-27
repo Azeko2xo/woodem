@@ -20,6 +20,8 @@
 
 #include<woo/core/Engine.hpp>
 
+
+
 /*****************************************************************************
 *********************************** SnapshotEngine ***************************
 *****************************************************************************/
@@ -104,7 +106,9 @@ struct QglMovableObject: public qglviewer::MouseGrabber{
  */
 class GLViewer : public QGLViewer
 {	
-	Q_OBJECT 
+	WOO_NOWARN_OVERRIDE_PUSH
+		Q_OBJECT 
+	WOO_NOWARN_OVERRIDE_POP
 	
 	friend class QGLThread;
 	private:

@@ -107,9 +107,9 @@ class ContactLoop: public Engine {
 
 	#define woo_dem_ContactLoop__CLASS_BASE_DOC_ATTRS_CTOR \
 		ContactLoop,Engine,"Loop over all contacts, possible in a parallel manner.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :obj:`Cg2 <CGeomFunctor>`, :obj:`Cp2 <IPhysFunctor>`, :obj:`Law <LawFunctor>` functors respectively; they will be passed to interal dispatchers.", \
-			((shared_ptr<CGeomDispatcher>,geoDisp,new CGeomDispatcher,AttrTrait<Attr::readonly>(),":obj:`CGeomDispatcher` object that is used for dispatch.")) \
-			((shared_ptr<CPhysDispatcher>,phyDisp,new CPhysDispatcher,AttrTrait<Attr::readonly>(),":obj:`CPhysDispatcher` object used for dispatch.")) \
-			((shared_ptr<LawDispatcher>,lawDisp,new LawDispatcher,AttrTrait<Attr::readonly>(),":obj:`LawDispatcher` object used for dispatch.")) \
+			((shared_ptr<CGeomDispatcher>,geoDisp,make_shared<CGeomDispatcher>(),AttrTrait<Attr::readonly>(),":obj:`CGeomDispatcher` object that is used for dispatch.")) \
+			((shared_ptr<CPhysDispatcher>,phyDisp,make_shared<CPhysDispatcher>(),AttrTrait<Attr::readonly>(),":obj:`CPhysDispatcher` object used for dispatch.")) \
+			((shared_ptr<LawDispatcher>,lawDisp,make_shared<LawDispatcher>(),AttrTrait<Attr::readonly>(),":obj:`LawDispatcher` object used for dispatch.")) \
 			((bool,alreadyWarnedNoCollider,false,AttrTrait<>().noGui(),"Keep track of whether the user was already warned about missing collider.")) \
 			((bool,evalStress,false,,"Evaluate stress tensor, in periodic simluations; if energy tracking is enabled, increments *gradV* energy.")) \
 			((bool,applyForces,true,,"Apply forces directly; this avoids IntraForce engine, but will silently skip multinodal particles.")) \

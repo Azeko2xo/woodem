@@ -18,6 +18,19 @@
 #define VTK_EXCLUDE_STRSTREAM_HEADERS
 
 
+// for missing override specification in place where we cannot change it (Q_OBJECT, for instance)
+#define WOO_NOWARN_OVERRIDE_PUSH _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Winconsistent-missing-override\"")
+#define WOO_NOWARN_OVERRIDE_POP _Pragma("GCC diagnostic pop")
+
+#if 0
+	// for internal woo::Object macros which do funny things internally
+	#define WOO_NOWARN_UNEVALUATED_PUSH  _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wunevaluated-expression\"")
+	#define WOO_NOWARN_UNEVALUATED_POP
+#endif
+
+
+
+
 #include<boost/lexical_cast.hpp>
 using boost::lexical_cast;
 
@@ -87,7 +100,8 @@ using std::abs;
 
 // override keyword not supported until gcc 4.7
 #if !defined(__clang__) && defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7
-	#define WOO_CXX11_OVERRIDE
+	// #define WOO_CXX11_OVERRIDE
+	#error GCC<=4.6 is no longer supported
 #else
 	// c++11
 	#define WOO_CXX11_OVERRIDE override

@@ -104,7 +104,7 @@ class TestPBC(unittest.TestCase):
 		self.assertAlmostEqual(self.initVel.norm(),i.geom.vel.norm())
 		#self.assertAlmostEqual(self.relDist[1],1-i.geom.penetrationDepth)
 	def testKineticEnergy(self):
-		"PBC: utils.kineticEnergy considers only fluctuation velocity, not the velocity gradient (homoDeform==Cell.HomoVel2)"
+		"PBC: Particle.getEk considers only fluctuation velocity, not the velocity gradient (homoDeform==Cell.HomoVel2)"
 		S=woo.master.scene
 		S.cell.homoDeform=Cell.HomoVel2
 		S.one() # updates velocity with homotheticCellResize
@@ -112,7 +112,7 @@ class TestPBC(unittest.TestCase):
 		# #0 is still, no need to add it; #1 has zero angular velocity
 		# we must take self.initVel since S.dem.par[1].vel now contains the homothetic resize which utils.kineticEnergy is supposed to compensate back 
 		Ek=.5*S.dem.par[1].mass*self.initVel.squaredNorm()
-		self.assertAlmostEqual(Ek,S.dem.par[1].Ekt)
+		self.assertAlmostEqual(Ek,S.dem.par[1].getEk(trans=True,rot=False,scene=S))
 	def testKineticEnergy_homoPos(self):
 		"PBC: utils.kineticEnergy considers only fluctuation velocity, not the velocity gradient (homoDeform==Cell.HomoPos)"
 		S=woo.master.scene
