@@ -1,3 +1,4 @@
+# encoding: utf-8
 import woo.document
 # import all modules here
 from woo import utils,log,timing,pack,document,manpage,plot,post2d,runtime,WeightedAverage2d
@@ -24,8 +25,10 @@ if not '--only-extras' in sys.argv:
 				continue
 			f.write('    %s\n'%o)
 	if 1:
-		fmt='html'
-		sphinx.main(['','-P','-b',fmt,'-d','../build/doctrees','../source','../build/%s'%fmt])
+		for fmt in 'latex','html':
+			args=['','-T','-b',fmt,'-j','6','-d','../build/doctrees','../source','../build/%s'%fmt]
+			print 'Calling sphinx.build_main with: '+' '.join(args)
+			sphinx.build_main(args)
 
 #
 # document extra modules, in separate trees
@@ -57,7 +60,7 @@ for mName in [m for m in sys.modules if m.startswith('wooExtra.') and len(m.spli
 		except KeyError: pass 
 	# HACK: change some values in the config
 	with open(confName,'a') as conf:
-		conf.write("""
+		conf.write(u"""
 project = u'{mName}'
 version = u'{version}'
 release = u'{version}'
@@ -69,13 +72,18 @@ intersphinx_mapping={{'woo':('http://www.woodem.eu/doc',None)}}
 extensions=[e for e in extensions if e!='sphinx.ext.viewcode'] # don't show code in extras, stragely wooExtra.* is included, not just the one particular extra module
 html_additional_pages = {{ }} # double here because of .format(...)
 modindex_common_prefix = [ '{mName}' ]
+latex_documents = [('index','{mName}','{mName} Documentation',u'Václav Šmilauer','manual')]
+latex_logo='../../source/woo-logo.pdf'
 		""".format(
 			version=pkg_resources.get_distribution(mName).version,
 			mName=mName,
 			copyright=re.sub('<[^<]+?>','',mod.distributor.replace('<br>',', '))
 		))
 	if 1:
-		sphinx.main(['','-P','-b','html','-d','../build-doctress',srcDir,outDir])
+		for fmt in 'html','latex':
+			args=['','-T','-b',fmt,'-j','6','-d','../build-doctrees',srcDir,outDir+'/'+fmt]
+			print 'Calling sphinx.build_main with: '+' '.join(args)
+			sphinx.build_main(args)
 
 		
 

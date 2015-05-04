@@ -60,8 +60,10 @@ The objective of this paper is to model a linear-elastic cross-anisotropic mediu
       
 Constructing the lattice from an arrangement of spherical particles is shown in :ref:`this figure <fig-contact-radius>`; the procedure is of geometrical nature, where spheres with positions :math:`\vec{x}_i` and radii :math:`r_i` are in contact if
 
-.. math:: \lvert\vec{x}_1-\vec{x}_2\rvert≤I_R(r_1+r_2)
-   \label{eq-IR} 
+.. math:: 
+   :label: eq-IR
+
+   \lvert\vec{x}_1-\vec{x}_2\rvert≤I_R(r_1+r_2)
 
 where :math:`I_R` is *contact radius* :cite:`Stransky2010`, dimensionless parameter determining density of the lattice. *I_R* is equal to 1 if only geometrically adjacent spheres are to be considered in contact, while greater values will allow "contact" between spheres which some distance between them.
 
@@ -356,8 +358,11 @@ Without loss of generality, we consider that the lattice is constructed from sph
 
 .. math::
    :label: eq-kn-En
+   :nowrap:
 
-      k_n &=E_N'\frac{\hat\pi r^2}{2r'}, & k_t&=E_T'\frac{\hat\pi r^2}{2r'}. \label{eq-kn-En}
+   \begin{align*}
+      k_n &=E_N'\frac{\hat\pi r^2}{2r'}, & k_t&=E_T'\frac{\hat\pi r^2}{2r'}.
+   \end{align*}
 
 In the case we mentioned, :math:`\hat\pi=\pi` but we assume no particular value in the following.
 
@@ -393,8 +398,9 @@ Microplane moduli :math:`E_N`, :math:`E_T` and lattice moduli :math:`E_N'`, :mat
 .. math::
    :label: eq-e-e'
    
-   E_N&=\mu E_N',
-   E_T&=\mu E_T'.
+   E_N=\mu E_N',
+
+   E_T=\mu E_T'.
 
 We can plug this relation into :eq:`eq-stiff-integral` obtaining
 
@@ -519,7 +525,7 @@ Components of the stiffness tensor are found by inversion of orthotropic complia
 .. math::
    :label: eq-CC-from-EGnu
 
-   \begin{pmatrix} C_{11} \\ C_{12} \\ C_{13} \\ C_{33} \\ C_{44}\end{pmatrix}&=\begin{pmatrix}E_x\frac{1-e\nu_{xz}^2}{(1+\nu_{xy})m} \\ E_x\frac{\nu_{xy}+e\nu_{xz}^2}{(1+\nu_{xy})m} \\ E_x\frac{\nu_{xy}}{m} \\  E_z\frac{1-\nu_{xy}}{m}  \\ G_{yz} \end{pmatrix}. \label{eq-CC-from-EGnu}
+   \begin{pmatrix} C_{11} \\ C_{12} \\ C_{13} \\ C_{33} \\ C_{44}\end{pmatrix}&=\begin{pmatrix}E_x\frac{1-e\nu_{xz}^2}{(1+\nu_{xy})m} \\ E_x\frac{\nu_{xy}+e\nu_{xz}^2}{(1+\nu_{xy})m} \\ E_x\frac{\nu_{xy}}{m} \\  E_z\frac{1-\nu_{xy}}{m}  \\ G_{yz} \end{pmatrix}.
 
 
 Numerical results

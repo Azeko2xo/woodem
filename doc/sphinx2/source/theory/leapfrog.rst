@@ -75,7 +75,7 @@ The basic integration procedure applies to nodes which have inertia tensor such 
       \next{\vec{q}}&=\mathrm{Quaternion}(\nnext{\vec{\omega}}\Dt)\curr{\vec{q}}
 	\end{align*}
 	
-.. note:: As with linear velocity, the first motion integration modifies the equation to read :math:`\nnext{\vec{\omega}}&=\curr{\vec{\omega}}+\curr{\dot{\vec{\omega}}}\Dt/2`, under the conditions explained above.
+.. note:: As with linear velocity, the first motion integration modifies the equation to read :math:`\nnext{\vec{\omega}}=\curr{\vec{\omega}}+\curr{\dot{\vec{\omega}}}\Dt/2`, under the conditions explained above.
 
 Aspherical nodes
 ^^^^^^^^^^^^^^^^^

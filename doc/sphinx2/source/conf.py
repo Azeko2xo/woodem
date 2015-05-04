@@ -108,7 +108,7 @@ tikz_tikzlibraries=''
 
 # show discussion form at the bottom of every page
 disqus_shortname='woodem'
-rst_epilog='\n\n.. disqus::\n\n'
+rst_epilog='\n\n.. only:: html\n\n   .. disqus::\n\n'
 
 extlinks={'woosrc':('https://github.com/eudoxos/woodem/tree/master/%s','')}
 
@@ -119,16 +119,17 @@ mathjax_path = 'MathJax_local.js' # file including MathJax from CDN plus local c
 # config for pngmath (in case we have to use that)
 pngmath_use_preview=True
 pngmath_add_tooltips=True
-pngmath_latex_preamble=r'''
+
+common_latex_preamble=r'''
 \usepackage{euler} % must be loaded before fontspec for the whole doc (below); this must be kept for pngmath, however
 \usepackage{hyperref}
 \usepackage{amsmath}
 \usepackage{amsbsy}
-\usepackage{underscore}
 % symbols
 \let\mat\boldsymbol % matrix
 \let\vec\boldsymbol % vector
 \let\tens\boldsymbol % tensor
+\let\quat\boldsymbol % tensor
 
 
 \def\normalized#1{\frac{31}{|\cdot|}}
@@ -151,6 +152,7 @@ pngmath_latex_preamble=r'''
 \def\nnext#1{#1^\oplus}
 \def\next#1{#1^+}
 '''
+pngmath_latex_preamble=common_latex_preamble
 
 
 
@@ -318,34 +320,54 @@ htmlhelp_basename = 'Woodoc'
 latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').
 #'papersize': 'letterpaper',
+'papersize':'a4paper',
 
 # The font size ('10pt', '11pt' or '12pt').
 #'pointsize': '10pt',
-
+'inputenc':r'\usepackage{xcolor}', ## trick to get xcolor included before sphinx.sty, avoiding warnings about colors
+'utf8extra':'',
+'fontenc':'',
+'fncychap':'\usepackage[Conny]{fncychap}',
+# 'babel':r'\usepackage{polyglossia}\setmainlanguage{english}',
+'printindex':r'\begin{small}\printindex\end{small}',
 # Additional stuff for the LaTeX preamble.
-'preamble': '\usepackage{tikz,pgfplots}',
+'preamble': r'''
+\usepackage{euler}
+\usepackage{fontspec}
+\defaultfontfeatures{Mapping=tex-text}
+\setmainfont[BoldFont={CMU Serif Bold Extended Roman}]{CMU Concrete}
+\usepackage{tikz,pgfplots}
+
+%% very large tolerance, to not see errors we can do nothing about anyway
+\vfuzz=100pt
+\hfuzz=100pt 
+\hbadness=\maxdimen
+\vbadness=\maxdimen
+%%
+
+'''+common_latex_preamble
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Woo.tex', u'Woo Documentation',
+  ('contents', 'Woo.tex', u'Woo Documentation',
    u'Václav Šmilauer', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
+latex_logo = 'woo-logo.pdf'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
-#latex_use_parts = False
+latex_use_parts = False
 
 # If true, show page references after internal links.
-#latex_show_pagerefs = False
+latex_show_pagerefs = True
 
 # If true, show URL addresses after external links.
-#latex_show_urls = False
+latex_show_urls = 'footnote'
 
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []

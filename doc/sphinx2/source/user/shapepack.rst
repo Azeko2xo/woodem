@@ -4,7 +4,7 @@
 ShapePack
 **********
 
-:obj:`~woo.dem.ShapePack` is an object which stores purely geometrical configuration of a number of particles; contrary to :ret:`tutorial-spherepack` (which is less universal, but has many sphere-specific optimizaitons), it can contain also other shapes than just spheres.
+:obj:`~woo.dem.ShapePack` is an object which stores purely geometrical configuration of a number of particles; contrary to :ref:`tutorial-spherepack` (which is less universal, but has many sphere-specific optimizaitons), it can contain also other shapes than just spheres.
 
 The API of both :obj:`~woo.dem.ShapePack` and :obj:`~_woo._packSphere.SpherePack` is deliberately almost identical.
 

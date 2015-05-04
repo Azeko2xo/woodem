@@ -155,7 +155,7 @@ The normal stress equation then reads
 .. math::
    :label: eq-cpm-sigmaN
 
-   \sigma_N=\left[1-\omega H(\eps_N)\right]k_N\eps_N+\sigma_{Nv}(\dot \eps_{Nd}). \label{eq-cpm-sigmaN}
+   \sigma_N=\left[1-\omega H(\eps_N)\right]k_N\eps_N+\sigma_{Nv}(\dot \eps_{Nd}).
 
 In a finite step computation, we can evaluate the damage variable :math:`\omega` in a rate-independent manner first; then, we compute the increment of :math:`\eps_d` satisfying equations :eq:`eq-cpm-epsd`--:eq:`eq-cpm-sigmaN`. As usual, we use :math:`\curr{\bullet}`, :math:`\next{\bullet}` to denote value of :math:`\bullet` at :math:`t`, :math:`t+\Dt` (at the beginning and at the end of the current timestep) respectively. We approximate the damage strain rate by the difference formula
 
@@ -183,14 +183,14 @@ In the contrary case, :eq:`eq-cpm-viscdmg` must be solved, but :math:`\langle\cd
 .. math::
    :label: eq-cpm-beta
 
-   \beta=\ln\frac{\Delta\eps_d}{\omega\next{\eps}_N-\curr{\eps}_d}, \label{eq-cpm-beta}
+   \beta=\ln\frac{\Delta\eps_d}{\omega\next{\eps}_N-\curr{\eps}_d},
 
 obtaining the equation
 
 .. math::
    :label: eq-cpm-logeq
 
-   \ln\left({\rm e}^\beta+c{\rm e}^{M_d\beta}\right)=0, \label{eq-cpm-logeq}
+   \ln\left({\rm e}^\beta+c{\rm e}^{M_d\beta}\right)=0,
 
 with
 
@@ -590,7 +590,7 @@ Computation of stress from reaction forces is not suitable for cases where the l
 
    \begin{align}
       \tens{\sigma}&=\frac{1}{V}\sum_{c\in V}\left[\vec{F}_{\Sigma}^c \otimes (\vec{C}_2-\vec{C}_1)\right]^{\rm sym} = \\
-         &=\frac{1}{V}\sum_{c\in V}l^c\left[\tens{N}^c \vec{F}_N^c+{\tens{T}^c}^T\vec{F}_T^c\right] \label{}
+         &=\frac{1}{V}\sum_{c\in V}l^c\left[\tens{N}^c \vec{F}_N^c+{\tens{T}^c}^T\vec{F}_T^c\right]
    \end{align}
 
 where :math:`V` is the considered volume containing contacts with the :math:`c` index. For each contact, there is :math:`l=|\vec{C}_2-\vec{C}_1|`, :math:`F_{\Sigma}=F_N\vec{n}+\vec{F}_T`, with all variables assuming their current value. We use 2nd-order normal projection tensor :math:`\tens{N}=\vec{n}\otimes\vec{n}` which, evaluated component-wise, gives
@@ -767,7 +767,9 @@ The experimental data we use come from :cite:`Caner2000` and :cite:`Grassl2006`.
    :figclass: align-center
    :width: 80%
 
-   Confined compression, comparing experimental data and simulation without the confinement extensions of the model. Experimental results (dashed) from :cite:`Caner2000`.
+   Confined compression, comparing experimental data and simulation without the confinement extensions of the model. Experimental results (dashed) by Caner.
+   
+.. from :cite:`Caner2000`.   # FIXME: put back when Sphinx fixes the bug, see https://github.com/sphinx-doc/sphinx/issues/1798
 
 Consider confined strain-stress diagrams at the :ref:`preceding figure <concrete-confined-linear-nosoft>` exhibiting unrealistic behavior under high confinement (-400MPa). Parameters :math:`\eps_s` and :math:`\tilde K_s` will influence at which point the curve will get to the hardening branch and what will be its tangent modulus  (:ref:`figure <concrete-strain-stress-normal-hardening>`). The :math:`Y_0` parameter determines evolution of plasticity surface in compression (:ref:`figure <concrete-yield-surf-log>`). We recommend the following values of the parameters:
 
@@ -786,7 +788,10 @@ which give curves in the :ref:`following figure <concrete-confined-log-soft>`. I
    :figclass: align-center
    :width: 80%
 
-   Experimental data and simulation in confined compression, using confinement extensions of the model. Cf. :ref:`this figure <concrete-confined-linear-nosoft>` for the influence of those extensions.
+   Experimental data and simulation in confined compression, using confinement extensions of the model. Cf. [previous figure] for the influence of those extensions.
+
+.. :ref:`this figure <concrete-confined-linear-nosoft>` #  FIXME: put back when Sphinx fixes the bug, see https://github.com/sphinx-doc/sphinx/issues/1798
+
 
 During simulation, the confinement effect was introduced on the contact level, in the constitutive law itself, as described in :ref:`concrete-isoprestress`; the confinement is therefore isotropic and without boundary influence.
 

@@ -100,8 +100,8 @@ Finally, current generalized displacements in local coordinates are evaluated as
    :nowrap:
 
    \begin{align*}
-      \curr{\vec{u}}&=\prev{u}+\pprev{\mat{T}}^T\pprev{\vec{v}_r}\Dt, \\
-      \curr{\vec{\phi}}&=\prev{\vec{\phi}}+\pprev{\mat{T}}^T\Dt(\vec{\omega}_2-\vec{\omega}_1)
+      \curr{\vec{u}}&=\prev{u}+{\pprev{\mat{T}}}^T\pprev{\vec{v}_r}\Dt, \\
+      \curr{\vec{\phi}}&=\prev{\vec{\phi}}+{\pprev{\mat{T}}}^T\Dt(\vec{\omega}_2-\vec{\omega}_1)
    \end{align*}
 
 For the normal component, non-incremental evaluation is preferred if possible; for two spheres, this reads

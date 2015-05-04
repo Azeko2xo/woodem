@@ -12,17 +12,17 @@ The geometry computation (performed by various :obj:`woo.dem.CGeomFunctor` subcl
 
 * Algorithm for computing relative velocities (and other features) at the contact point, which is common for all particle shapes:
 
-   .. toctree::
+.. toctree::
    
-      l6geom.rst
+   l6geom.rst
 
 * Intersection algorithms for various :obj:`shapes <woo.dem.Shape>`, such as :obj:`sphere <woo.dem.Sphere>` with :obj:`facet <woo.dem.Facet>`, :obj:`ellipsoid <woo.dem.Ellipsoid>` with :obj:`wall <woo.dem.Wall>` and so on.
 
-   .. toctree::
+.. toctree::
 
-      sphere.rst
-      ellipsoid.rst
-      capsule.rst
+   sphere.rst
+   ellipsoid.rst
+   capsule.rst
 
 
 Particle shapes

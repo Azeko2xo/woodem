@@ -1,12 +1,14 @@
-Welcome to Woo's documentation!
-===============================
+.. only:: html
 
-* Code available at http://github.com/eudoxos/woodem
-* Contact us at `info@woodem.eu <mailto:info@woodem.eu>`_
-* Post to the the forum at http://answers.launchpad.net/woo
-* Return to the `main website <http://woodem.eu>`_
+   Welcome to Woo's documentation!
+   ===============================
 
-Contents:
+   * Code available at http://github.com/eudoxos/woodem
+   * Contact us at `info@woodem.eu <mailto:info@woodem.eu>`_
+   * Post to the the forum at http://answers.launchpad.net/woo
+   * Return to the `main website <http://woodem.eu>`_
+
+   Contents:
 
 .. toctree::
    :maxdepth: 2
@@ -20,10 +22,12 @@ Contents:
    references.rst
    todos.rst
 
-Indices and tables
-==================
+.. only:: html
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Indices and tables
+   ==================
+
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`
 

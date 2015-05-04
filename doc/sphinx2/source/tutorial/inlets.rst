@@ -60,7 +60,7 @@ The size distribution can be shown with ``cumulative=False``:
 
 .. ipython::
 
-   @savefig tutorial-psd-generator-noncumulative.svg width=6in
+   @savefig tutorial-psd-generator-noncumulative.png width=6in
    Woo [1]: genPsdPlot(gen,cumulative=False)
 
 Discrete PSD

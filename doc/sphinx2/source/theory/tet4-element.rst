@@ -26,23 +26,23 @@ Current element configuration is stored in :obj:`woo.fem.Tet4.node`; its origin 
 
      .. math::
 
-        [\mathbf{q}]_L=\pmatrix{ q_0 & -q^T \\ q & q_0 I+\hat q},
+        [\mathbf{q}]_L=\begin{pmatrix} q_0 & -q^T \\ q & q_0 I+\hat q\end{pmatrix},
 
-        [\mathbf{q}]_R=\pmatrix{ q_0 & -q^T \\ q & q_0 I-\hat q},
+        [\mathbf{q}]_R=\begin{pmatrix} q_0 & -q^T \\ q & q_0 I-\hat q\end{pmatrix},
 
      which simplifies, for pure-imaginary arguments, to
 
      .. math::
 
-        [\mathbf{q}^\circ]_L=\pmatrix{ 0 & -q^T \\ q & +\hat q},
+        [\mathbf{q}^\circ]_L=\begin{pmatrix} 0 & -q^T \\ q & +\hat q\end{pmatrix},
 
-        [\mathbf{q}^\circ]_R=\pmatrix{ 0 & -q^T \\ q & -\hat q};
+        [\mathbf{q}^\circ]_R=\begin{pmatrix} 0 & -q^T \\ q & -\hat q\end{pmatrix};
 
    * the hat operator :math:`\hat\bullet` is the skew-symmetric matrix representing cross-product by :math:`\bullet` (:cite:`Mostafa2014`, A.1):
 
      .. math::
 
-        \hat a=\pmatrix{ 0 & -a_3 & a_2 \\ a_3 & 0 & -a_1 \\ -a_2 & a_1 & 0 }.
+        \hat a=\begin{pmatrix} 0 & -a_3 & a_2 \\ a_3 & 0 & -a_1 \\ -a_2 & a_1 & 0 \end{pmatrix}.
 
 3. compute :cite:`Mostafa2014`, (8b):
 

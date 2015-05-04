@@ -11,3 +11,4 @@ Theory
    clumps.rst
    tet4-element.rst
    membrane-element.rst
+   granular/psd.rst

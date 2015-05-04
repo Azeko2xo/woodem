@@ -220,6 +220,9 @@ The simulation can also be run from the script or the command line in terminal:
    # where are we at now?
    Woo [1]: S.step, S.time, S.dt 
 
+   @suppress
+   Woo [1]: import time; time.sleep(.1) # wait a bit so that stop really stops
+
    Woo [1]: S.run(200)      # run 200 steps in background
 
    Woo [1]: S.wait()        # wait for the background to finish, then return
