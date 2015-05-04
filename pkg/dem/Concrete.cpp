@@ -9,6 +9,8 @@ WOO_IMPL__CLASS_BASE_DOC_ATTRS_PY(woo_dem_Law2_L6Geom_ConcretePhys__CLASS_BASE_D
 	
 
 
+WOO_IMPL_LOGGER(Cp2_ConcreteMat_ConcretePhys);
+
 void Cp2_ConcreteMat_ConcretePhys::go(const shared_ptr<Material>& m1, const shared_ptr<Material>& m2, const shared_ptr<Contact>& C){
 	// no updates of an already existing contact necessary
 	if(C->phys) return;
@@ -27,6 +29,12 @@ void Cp2_ConcreteMat_ConcretePhys::go(const shared_ptr<Material>& m1, const shar
 		assert(!isnan(mat2.sigmaT));
 		assert(!isnan(mat2.epsCrackOnset));
 		assert(!isnan(mat2.relDuctility));
+	}
+
+	static bool _w=false;
+	if(!_w && (mat1.ktDivKn!=0 || mat2.ktDivKn!=0)){
+		_w=true;
+		LOG_ERROR("The concrete model has bugs in shear stress computation (investigation ongoing) and is unstable. Set ktDivKn=0. to disable this warning and have at least a limited version of the model for now.");
 	}
 
 	// particles sharing the same material; no averages necessary
@@ -249,8 +257,10 @@ bool Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_p
 		}
 	#endif
 	
+	if(C->isFresh(scene)) phys.uN0=geom.uN;
+
 	/* shorthands */
-	phys.epsN=geom.uN/geom.lens.sum();
+	phys.epsN=(geom.uN-phys.uN0)/geom.lens.sum();
 	phys.epsT+=scene->dt*geom.vel.tail<2>()/geom.lens.sum();
 
 	Real& epsN(phys.epsN);
@@ -261,7 +271,7 @@ bool Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_p
 	Real& kappaD(phys.kappaD);
 
 	/* Real& epsPlSum(phys->epsPlSum); */
-	const Real& E(phys.E); \
+	const Real& E(phys.E);
 	const Real& coh0(phys.coh0);
 	const Real& tanPhi(phys.tanPhi);
 	const Real& G(phys.G);
@@ -279,23 +289,6 @@ bool Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_p
 	const Real& dt(scene->dt);
 	const Real& dmgTau(phys.dmgTau);
 	const Real& plTau(phys.plTau);
-	#if 0
-		const Real& omegaThreshold(this->omegaThreshold);
-		const Real& yieldLogSpeed(this->yieldLogSpeed);
-		const int& yieldSurfType(this->yieldSurfType);
-		const Real& yieldEllipseShift(this->yieldEllipseShift);
-		const Real& epsSoft(this->epsSoft);
-		const Real& relKnSoft(this->relKnSoft);
-	#endif
-
-	#if 0
-		// XXX
-		epsN = - (-phys->refPD + geom->penetrationDepth) / phys->refLength;
-		//epsT = geom->rotate(epsT);
-		geom->rotate(epsT);
-		//epsT += geom->shearIncrement() / (phys->refLength + phys->refPD) ; 
-		epsT += geom->shearIncrement() / phys->refLength;
-	#endif
 
 	NNAN(epsN); NNANV(epsT);
 
@@ -341,28 +334,10 @@ bool Law2_L6Geom_ConcretePhys::go(const shared_ptr<CGeom>& _geom, const shared_p
 		return false;
 	}
 
-	Fn=sigmaN*contA; // phys->normalForce = -Fn*geom->normal;
-	Ft=sigmaT*contA; // phys->shearForce = -Fs;
+	Fn=sigmaN*contA;
+	Ft=sigmaT*contA;
 
 	// TIMING_DELTAS_CHECKPOINT("GO B");
-
-	#if 0
-		Body::id_t id1 = I->getId1();
-		Body::id_t id2 = I->getId2();
-		State* b1 = Body::byId(id1,scene)->state.get();
-		State* b2 = Body::byId(id2,scene)->state.get();	
-
-		Vector3r f = -phys->normalForce - phys->shearForce;
-		if (!scene->isPeriodic) {
-			applyForceAtContactPoint(f, geom->contactPoint , id1, b1->se3.position, id2, b2->se3.position);
-		} else {
-			scene->forces.addForce(id1,f);
-			scene->forces.addForce(id2,-f);
-			scene->forces.addTorque(id1,(geom->radius1+.5*(phys->refPD-geom->penetrationDepth))*geom->normal.cross(f));
-			scene->forces.addTorque(id2,(geom->radius2+.5*(phys->refPD-geom->penetrationDepth))*geom->normal.cross(f));
-		}
-		TIMING_DELTAS_CHECKPOINT("rest");
-	#endif
 	return true;
 }
 

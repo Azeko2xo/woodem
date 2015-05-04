@@ -50,6 +50,10 @@ class OpenMPArrayAccumulator{
 	int nCL_for_N(size_t n){ return n/perCL+(n%perCL==0 ? 0 : 1); } // return number of cache lines to allocate for given number of elements
 	public:
 		OpenMPArrayAccumulator()        : CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { }
+		OpenMPArrayAccumulator(const OpenMPArrayAccumulator& a): OpenMPArrayAccumulator() {
+			this->resize(a.sz);
+			for(size_t th=0; th<nThreads; th++) memcpy((void*)(chunks[th]),(void*)(a.chunks[th]),nCL_for_N(sz));
+		}
 		OpenMPArrayAccumulator(size_t n): CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { resize(n); }
 		// change number of elements
 		void resize(size_t n){
@@ -140,20 +144,26 @@ class OpenMPAccumulator{
 		int CLS; // cache line size
 		int nThreads;
 		int eSize; // size of an element, computed from cache line size and sizeof(T)
-		char* data; // use void* rather than T*, since with T* the pointer arithmetics has sizeof(T) as unit, which is confusing; char* takes one byte
+		T* data; // with T*, the pointer arithmetics has sizeof(T) as unit, so watch out!
 	public:
-	// initialize storage with _zeroValue, depending on muber of threads
+	// initialize storage with _zeroValue, depending on nuber of threads
 	OpenMPAccumulator(): CLS(_WOO_L1_CACHE_LINESIZE), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))), data(NULL) {
 		#ifndef __MINGW64__
-			int succ=posix_memalign(/*where allocated*/(void**)&data,/*alignment*/CLS,/*size*/ nThreads*eSize);
+			void *mem=NULL;
+			int succ=posix_memalign(/*where allocated*/&mem,/*alignment*/CLS,/*size*/ nThreads*eSize);
+			data=(T*)mem;
 			if(succ!=0)
 		#else
 			// http://msdn.microsoft.com/en-us/library/8z34s9c6%28v=vs.80%29.aspx
-			data=(char*)_aligned_malloc(/*size*/nThreads*eSize,/*alignment*/CLS);
+			data=(T*)_aligned_malloc(/*size*/nThreads*eSize,/*alignment*/CLS);
 			if(data==NULL)
 		#endif
 				throw std::runtime_error("OpenMPAccumulator: posix_memalign/_aligned_malloc failed to allocate memory.");
 		reset();
+	}
+	OpenMPAccumulator(const OpenMPAccumulator& a): OpenMPAccumulator() {
+		assert(a.nThreads==nThreads); assert(a.eSize==eSize);
+		memcpy((void*)data,(void*)a.data,nThreads*eSize); // copy data over
 	}
 	~OpenMPAccumulator() {
 		assert(data); // would've failed in the ctor already
@@ -164,17 +174,17 @@ class OpenMPAccumulator{
 		#endif
 	}
 	// lock-free addition
-	void operator+=(const T& val){ *((T*)(data+omp_get_thread_num()*eSize))+=val; }
+	void operator+=(const T& val){ *((T*)(data+omp_get_thread_num()))+=val; }
 	// return summary value; must not be used concurrently
 	operator T() const { return get(); }
 	// reset to zeroValue; must NOT be used concurrently
-	void reset(){ for(int i=0; i<nThreads; i++) *(T*)(data+i*eSize)=ZeroInitializer<T>(); }
+	void reset(){ for(int i=0; i<nThreads; i++) *(T*)(data+i)=ZeroInitializer<T>(); }
 	// this can be used to get the value from python, something like
 	// .def_readonly("myAccu",&OpenMPAccumulator::get,"documentation")
-	T get() const { T ret(ZeroInitializer<T>()); for(int i=0; i<nThreads; i++) ret+=*(T*)(data+i*eSize); return ret; }
+	T get() const { T ret(ZeroInitializer<T>()); for(int i=0; i<nThreads; i++) ret+=*(T*)(data+i); return ret; }
 	void set(const T& value){ reset(); /* set value for the 0th thread */ *(T*)(data)=value; }
 	// only useful for debugging
-	std::vector<T> getPerThreadData() const { std::vector<T> ret; for(int i=0; i<nThreads; i++) ret.push_back(*(T*)(data+i*eSize)); return ret; }
+	std::vector<T> getPerThreadData() const { std::vector<T> ret; for(int i=0; i<nThreads; i++) ret.push_back(*(T*)(data+i)); return ret; }
 };
 #else 
 template<typename T>

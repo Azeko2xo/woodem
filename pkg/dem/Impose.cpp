@@ -1,10 +1,16 @@
 #include<woo/pkg/dem/Impose.hpp>
 #include<woo/lib/smoothing/LinearInterpolate.hpp>
 
-WOO_PLUGIN(dem,(HarmonicOscillation)(AlignedHarmonicOscillations)(CircularOrbit)(StableCircularOrbit)(RadialForce)(Local6Dofs)(VariableAlignedRotation)(InterpolatedMotion));
+WOO_PLUGIN(dem,(HarmonicOscillation)(AlignedHarmonicOscillations)(CircularOrbit)(StableCircularOrbit)(RadialForce)(Local6Dofs)(VariableAlignedRotation)(InterpolatedMotion)(VelocityAndReadForce));
 
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_HarmonicOscillation__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_CircularOrbit__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_AlignedHarmonicOscillations__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_Local6Dofs__CLASS_BASE_DOC_ATTRS_CTOR);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_VariableAlignedRotation__CLASS_BASE_DOC_ATTRS_CTOR);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_InterpolatedMotion__CLASS_BASE_DOC_ATTRS_CTOR);
 WOO_IMPL__CLASS_BASE_DOC_ATTRS(woo_dem_StableCircularOrbit__CLASS_BASE_DOC_ATTRS);
+WOO_IMPL__CLASS_BASE_DOC_ATTRS_CTOR(woo_dem_VelocityAndReadForce__CLASS_BASE_DOC_ATTRS_CTOR);
 
 void CircularOrbit::velocity(const Scene* scene, const shared_ptr<Node>& n){
 	if(!node) throw std::runtime_error("CircularOrbit: node must not be None.");
@@ -93,3 +99,29 @@ void InterpolatedMotion::velocity(const Scene* scene, const shared_ptr<Node>& n)
 	AngleAxisr rot(n->ori.conjugate()*nextOri);
 	dyn.angVel=rot.axis()*rot.angle()/scene->dt;
 };
+
+void VelocityAndReadForce::velocity(const Scene* scene, const shared_ptr<Node>& n){
+	auto& dyn=n->getData<DemData>();
+	if(latBlock) dyn.vel=dir*vel;
+	else{
+		Vector3r vLat=dyn.vel-dir*(dyn.vel.dot(dir));
+		dyn.vel=vLat+dir*vel;
+	}
+}
+
+void VelocityAndReadForce::readForce(const Scene* scene, const shared_ptr<Node>& n){
+	{
+		boost::mutex::scoped_lock l(lock);
+		// first comes, first resets for this step
+		if(stepLast!=scene->step){
+			stepLast=scene->step;
+			sumF.reset();
+			dist+=vel*scene->dt;
+		}
+	}
+	// the rest is thread-safe
+	Real f=n->getData<DemData>().force.dot(dir);
+	sumF+=f;
+	if(scene->trackEnergy && !energyName.empty()) scene->energy->add(f*scene->dt*vel,energyName,workIx,EnergyTracker::IsIncrement | EnergyTracker::ZeroDontCreate);
+}
+

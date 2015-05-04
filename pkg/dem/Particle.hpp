@@ -125,6 +125,7 @@ WOO_REGISTER_OBJECT(Particle);
 struct Impose: public Object{
 	virtual void velocity(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::velocity."); }
 	virtual void force(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::force."); }
+	virtual void readForce(const Scene*, const shared_ptr<Node>&){ throw std::runtime_error("Calling abstract Impose::readForce."); }
 	bool isFirstStepRun(const Scene* scene){
 		// this does not need to be locked (hopefully)
 		if(stepLast==scene->step) return false;
@@ -134,11 +135,11 @@ struct Impose: public Object{
 		return true;
 	}
 	boost::mutex lock;
-	// INIT_VELOCITY is used in LawTesteStage, but not by Impose classes
-	enum{ NONE=0, VELOCITY=1, FORCE=2, INIT_VELOCITY=4 };
+	// INIT_VELOCITY is used in LawTesterStage, but not by Impose classes
+	enum{ NONE=0, VELOCITY=1, FORCE=2, INIT_VELOCITY=4, READ_FORCE=8 };
 	#define woo_dem_Impose__CLASS_BASE_DOC_ATTRS_PY \
-		Impose,Object,"Impose arbitrary changes in Node and DemData, right after integration of the node.", \
-		((int,what,,AttrTrait<>().readonly().choice({{0,"none"},{VELOCITY,"velocity"},{FORCE,"force"},{VELOCITY|FORCE,"velocity+force"}}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed.")) \
+		Impose,Object,"Impose arbitrary changes in Node and DemData, at certain hook points during motion integration. Velocity is imposed after motion integration (and again after computing acceleration from forces, to make sure forces don't alter what is prescribed), force is imposed when forces from the previous step are being reset (thus additional force may be applied on the node as usual); readForce is a special imposition before resetting force, which is meant to look at summary force applied onto node(s)." , \
+		((int,what,,AttrTrait<>().bits({"vel","force","iniVel","readForce"}),"What values are to be imposed; this is set by the derived engine automatically depending on what is to be prescribed.")) \
 		((long,stepLast,-1,AttrTrait<>().readonly(),"Step in which this imposition was last used; updated atomically by callers from c++ by calling isFirstStepRun.")) \
 		,/*py*/ ; \
 			_classObj.attr("none")=(int)NONE; \

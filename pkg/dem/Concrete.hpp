@@ -78,6 +78,7 @@ struct ConcretePhys: public FrictPhys {
 		((Vector2r,epsT,Vector2r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Shear strain; updated incrementally from :obj:`L6Geom.vel`.")) \
 		\
 		((Real,omega,0,AttrTrait<Attr::noSave|Attr::readonly>().startGroup("Auto-computed"),"Damage parameter")) \
+		((Real,uN0,NaN,AttrTrait<Attr::readonly>(),"Initial normal displacement (equilibrium state)")) \
 		((Real,epsN,0,AttrTrait<Attr::noSave|Attr::readonly>(),"Normal strain")) \
 		((Real,sigmaN,0,AttrTrait<Attr::noSave|Attr::readonly>(),"Normal force")) \
 		((Vector2r,sigmaT,Vector2r::Zero(),AttrTrait<Attr::noSave|Attr::readonly>(),"Tangential stress")) \

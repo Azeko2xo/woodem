@@ -29,34 +29,17 @@ struct Gl1_DemField: public GlFieldFunctor{
 
 	void postLoad2();
 
-	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_MASK,COLOR_NUM_CON,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
+	enum{COLOR_SOLID=0,COLOR_SHAPE,COLOR_RADIUS,COLOR_VEL,COLOR_ANGVEL,COLOR_MASS,COLOR_DISPLACEMENT,COLOR_ROTATION,COLOR_REFPOS,COLOR_MAT_ID,COLOR_MATSTATE,COLOR_SIG_N,COLOR_SIG_T,COLOR_MASK,COLOR_NUM_CON,COLOR_FLAGS,COLOR_INVISIBLE,/*last*/COLOR_SENTINEL};
 	enum{GLYPH_KEEP=0,GLYPH_NONE,GLYPH_FORCE,GLYPH_TORQUE,GLYPH_VEL,GLYPH_ANGVEL,/*last*/GLYPH_SENTINEL};
 	enum{CNODE_NONE=0,CNODE_GLREP=1,CNODE_LINE=2,CNODE_NODE=4,CNODE_POTLINE=8};
 	enum{SHAPE_NONE=0,SHAPE_ALL,SHAPE_SPHERES,SHAPE_NONSPHERES,SHAPE_MASK};
+	enum{AXIS_X=0,AXIS_Y,AXIS_Z,AXIS_YZ,AXIS_ZX,AXIS_XY,AXIS_NORM};
 	RENDERS(DemField);
 	WOO_DECL_LOGGER;
 	Scene* _lastScene; // to detect changes; never acessed as pointer
 
-	// those are used twice, stuff them into macro
-	#define GL1_DEMFIELD_COLORBY_CHOICES \
-			{COLOR_SOLID,"solidColor"}, \
-			{COLOR_SHAPE,"Shape.color"}, \
-			{COLOR_RADIUS,"radius"}, \
-			{COLOR_VEL,"velocity"}, \
-			{COLOR_ANGVEL,"angular velocity"}, \
-			{COLOR_MASS,"mass"}, \
-			{COLOR_MASK,"mask"}, \
-			{COLOR_DISPLACEMENT,"ref. displacement"}, \
-			{COLOR_ROTATION,"ref. rotation"}, \
-			{COLOR_REFPOS,"refpos coordinate"}, \
-			{COLOR_MAT_ID,"material id"}, \
-			{COLOR_MATSTATE,"Particle.matState"}, \
-			{COLOR_SIG_N,"normal stress"}, \
-			{COLOR_SIG_T,"shear stress"}, \
-			{COLOR_NUM_CON,"num. contacts"}, \
-			{COLOR_INVISIBLE,"invisible"}
 	
-	#define GL1_DEMFIELD_COLORBY_NAMEDENUM {{COLOR_SOLID,{"solid"}},{COLOR_SHAPE,{"Shape.color","shape"}},{COLOR_RADIUS,{"radius","r"}},{COLOR_VEL,{"velocity","vel","v"}},{COLOR_ANGVEL,{"angular velocity","angVel"}},{COLOR_MASS,{"mass","m"}},{COLOR_MASK,{"mask"}},{COLOR_DISPLACEMENT,{"ref. displacement","disp","displacement"}},{COLOR_ROTATION,{"ref. rotation","rot","rotation"}},{COLOR_REFPOS,{"refpos coord","refpos"}},{COLOR_MAT_ID,{"material id","mat id"}},{COLOR_MATSTATE,{"Particle.matState","mat state"}},{COLOR_SIG_N,{"normal stress","sigN"}},{COLOR_SIG_T,{"shear stress","sigT"}},{COLOR_NUM_CON,{"number of contacts","num contacts","numCon"}},{COLOR_INVISIBLE,{"invisible","-"}}}
+	#define GL1_DEMFIELD_COLORBY_NAMEDENUM {{COLOR_SOLID,{"solid"}},{COLOR_SHAPE,{"Shape.color","shape"}},{COLOR_RADIUS,{"radius","r"}},{COLOR_VEL,{"velocity","vel","v"}},{COLOR_ANGVEL,{"angular velocity","angVel"}},{COLOR_MASS,{"mass","m"}},{COLOR_MASK,{"mask"}},{COLOR_DISPLACEMENT,{"ref. displacement","disp","displacement"}},{COLOR_ROTATION,{"ref. rotation","rot","rotation"}},{COLOR_REFPOS,{"refpos coord","refpos"}},{COLOR_MAT_ID,{"material id","mat id"}},{COLOR_MATSTATE,{"Particle.matState","mat state"}},{COLOR_SIG_N,{"normal stress","sigN"}},{COLOR_SIG_T,{"shear stress","sigT"}},{COLOR_NUM_CON,{"number of contacts","num contacts","numCon"}},{COLOR_FLAGS,{"flags"}},{COLOR_INVISIBLE,{"invisible","-"}}}
 
 	WOO_CLASS_BASE_DOC_STATICATTRS_CTOR_PY(Gl1_DemField,GlFieldFunctor,"Render DEM field.",
 		((int,shape,SHAPE_ALL,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum({{SHAPE_NONE,{"none",""}},{SHAPE_ALL,{"all"}},{SHAPE_SPHERES,{"spheroids","sph"}},{SHAPE_NONSPHERES,{"non-spheroids","nsph"}},{SHAPE_MASK,{"mask"}}}).startGroup("Shape"),"Render only particles matching selected filter."))
@@ -65,13 +48,13 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((Vector2i,modulo,Vector2i(0,0),,"For particles matching :obj:`shape`, only show particles with :obj:`Particle.id` such that ``(id+modulo[1])%modulo[0]==0`` (similar to :obj:`woo.dem.Tracer.modulo`). Only nodes of which first particle matches (or don't have any particle attached) are shown (in case of nodes, regardless of its :obj:`shape`). Display of contacts is not affected by this value."))
 		((bool,wire,false,,"Render all shapes with wire only"))
 
-		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM) /*.choice({ GL1_DEMFIELD_COLORBY_CHOICES })*/.buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
-		((int,vecAxis,-1,AttrTrait<>().choice({{-1,"norm"},{0,"x"},{1,"y"},{2,"z"}}).hideIf("self.colorBy in ('Shape.color', 'radius', 'material id', 'Particle.matState', 'number of contacts')"),"Axis for colorRefPosCoord"))
+		((int,colorBy,COLOR_SHAPE,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM).buttons({"Reference now","self.updateRefPos=True","use current positions and orientations as reference for showing displacement/rotation"},/*showBefore*/false),"Color particles by"))
+		((int,vecAxis,AXIS_NORM,AttrTrait<Attr::namedEnum>().namedEnum({{AXIS_X,{"x"}},{AXIS_Y,{"y"}},{AXIS_Z,{"z"}},{AXIS_YZ,{"yz","yz"}},{AXIS_ZX,{"zx","xz"}},{AXIS_XY,{"xy","yx"}},{AXIS_NORM,{"norm","magnitude","xyz"}}}).hideIf("self.colorBy in ('Shape.color', 'radius', 'material id', 'Particle.matState', 'number of contacts')"),"Axis for colorRefPosCoord"))
 		((int,matStateIx,0,AttrTrait<Attr::triggerPostLoad>().hideIf("self.colorBy!='Particle.matState'  and self.colorBy2!='Particle.matState'"),"Index for getting :obj:`MatState` scalars."))
 		((Real,matStateSmooth,1e-3,AttrTrait<>().hideIf("self.colorBy!='Particle.matState' and self.colorBy2!='Particle.matState'"),"Smoothing coefficient for :obj:`MatState` scalars."))
 		((shared_ptr<ScalarRange>,colorRange,,AttrTrait<>().readonly().hideIf("self.colorBy in ('solid','invisible')"),"Range for particle colors (:obj:`colorBy`)"))
 
-		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM) /*.choice({ GL1_DEMFIELD_COLORBY_CHOICES }) */ .hideIf("not self.shape2"),"Color for particles with :obj:`shape2`."))
+		((int,colorBy2,COLOR_SOLID,AttrTrait<Attr::triggerPostLoad|Attr::namedEnum>().namedEnum(GL1_DEMFIELD_COLORBY_NAMEDENUM).hideIf("not self.shape2"),"Color for particles with :obj:`shape2`."))
 		((shared_ptr<ScalarRange>,colorRange2,,AttrTrait<>().readonly().hideIf("not self.shape2 or self.colorBy2 in ('solid','invisible')"),"Range for particle colors (:obj:`colorBy`)"))
 		((Vector3r,solidColor,Vector3r(.3,.3,.3),AttrTrait<>().rgbColor(),"Solid color for particles."))
 

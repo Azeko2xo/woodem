@@ -18,9 +18,14 @@
 #define VTK_EXCLUDE_STRSTREAM_HEADERS
 
 
-// for missing override specification in place where we cannot change it (Q_OBJECT, for instance)
-#define WOO_NOWARN_OVERRIDE_PUSH _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Winconsistent-missing-override\"")
-#define WOO_NOWARN_OVERRIDE_POP _Pragma("GCC diagnostic pop")
+#ifdef __clang__
+	// for missing override specification in place where we cannot change it (Q_OBJECT, for instance)
+	#define WOO_NOWARN_OVERRIDE_PUSH _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Winconsistent-missing-override\"")
+	#define WOO_NOWARN_OVERRIDE_POP _Pragma("GCC diagnostic pop")
+#else
+	#define WOO_NOWARN_OVERRIDE_PUSH
+	#define WOO_NOWARN_OVERRIDE_POP
+#endif
 
 #if 0
 	// for internal woo::Object macros which do funny things internally

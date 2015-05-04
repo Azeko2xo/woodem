@@ -234,6 +234,9 @@ void Leapfrog::run(){
 			}
 		}
 
+		// read back forces from the node (before they are reset)
+		if(dyn.impose && (dyn.impose->what & Impose::READ_FORCE)) dyn.impose->readForce(scene,node);
+
 		if(reset){
 			// apply gravity only to the clump itself (not to the nodes later, in CLumpData::applyToMembers)
 			dyn.force=(hasGravity && !dyn.isGravitySkip())?(dyn.mass*dem->gravity).eval():Vector3r::Zero();

@@ -103,6 +103,7 @@ void Gl1_DemField::initAllRanges(){
 			case COLOR_SIG_N: 	    r->label="normal stress"; break;
 			case COLOR_SIG_T:    	 r->label="shear stress"; break;
 			case COLOR_NUM_CON:    	 r->label="num. contacts"; break;
+			case COLOR_FLAGS:    	 r->label="flags"; break;
 			case COLOR_MASK:    		 r->label="mask"; break;
 		};
 	}
@@ -207,6 +208,7 @@ void Gl1_DemField::doShape(){
 		const shared_ptr<Node>& _n0=p->shape->nodes[0];
 		const shared_ptr<Node>& n0=(_n0->getData<DemData>().isClumped()?_n0->getData<DemData>().master.lock():_n0);
 		Renderer::glScopedName name(p,n0,/*highLev=*/(p->shape->getHighlighted()?0:-1));
+		const auto& dyn0=n0->getData<DemData>();
 		// bool highlight=(p->id==selId || (p->clumpId>=0 && p->clumpId==selId) || p->shape->highlight);
 
 		// if any of the particle's nodes is clipped, don't display it at all
@@ -221,7 +223,7 @@ void Gl1_DemField::doShape(){
 		bool useColor2=false;
 		bool isSpheroid(!isnan(p->shape->equivRadius()));
 		Real radius=p->shape->equivRadius();
-		if(n0->getData<DemData>().isClump()) radius=n0->getData<DemData>().cast<ClumpData>().equivRad;
+		if(dyn0.isClump()) radius=dyn0.cast<ClumpData>().equivRad;
 
 		switch(shape){
 			case SHAPE_NONE: useColor2=true; break;
@@ -248,17 +250,26 @@ void Gl1_DemField::doShape(){
 		
 		// choose colorRange for colorBy or colorBy2
 		const shared_ptr<ScalarRange>& CR(!useColor2?colorRange:colorRanges[colorBy2]);
-		auto vecNormXyz=[&](const Vector3r& v)->Real{ if(useColor2 || vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis]; };
+		auto vecNormXyz=[&](const Vector3r& v)->Real{
+			switch(vecAxis){
+				case 0: case 1: case 2: return v[vecAxis];
+				case AXIS_YZ: return v.tail<2>().norm();
+				case AXIS_ZX: return sqrt(pow(v[2],2)+pow(v[1],2));
+				case AXIS_XY: return v.head<2>().norm();
+				default: return v.norm();
+			}
+			// if(useColor2 || vecAxis<0||vecAxis>2) return v.norm(); return v[vecAxis];
+		};
 		int cBy=(!useColor2?colorBy:colorBy2);
 		switch(cBy){
 			case COLOR_RADIUS: parColor=(!isnan(radius)?CR->color(radius):(solidColor)); break;
 			case COLOR_VEL: parColor=CR->color(vecNormXyz(getParticleVel(p))); break;
 			case COLOR_ANGVEL: parColor=CR->color(vecNormXyz(getNodeAngVel(n0))); break;
-			case COLOR_MASS: parColor=CR->color(n0->getData<DemData>().mass); break;
+			case COLOR_MASS: parColor=CR->color(dyn0.mass); break;
 			case COLOR_DISPLACEMENT: parColor=CR->color(vecNormXyz(n0->pos-n0->getData<GlData>().refPos)); break;
 			case COLOR_ROTATION: {
 				AngleAxisr aa(n0->ori.conjugate()*n0->getData<GlData>().refOri);
-				parColor=CR->color((vecAxis<0||vecAxis>2)?aa.angle():(aa.angle()*aa.axis())[vecAxis]);
+				parColor=CR->color(vecAxis==AXIS_NORM?aa.angle():vecNormXyz(aa.angle()*aa.axis()));
 				break;
 			}
 			case COLOR_REFPOS: parColor=CR->color(vecNormXyz(n0->getData<GlData>().refPos)); break;
@@ -281,6 +292,7 @@ void Gl1_DemField::doShape(){
 			}
 			case COLOR_MASK: parColor=CR->color(p->mask); break;
 			case COLOR_NUM_CON: parColor=CR->color(p->countRealContacts()); break;
+			case COLOR_FLAGS: parColor=CR->color(dyn0.flags); break;
 			case COLOR_INVISIBLE: continue; // don't show this particle at all
 			default: parColor=Vector3r(NaN,NaN,NaN);
 		}

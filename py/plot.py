@@ -388,7 +388,8 @@ class LineRef:
 					except IndexError: pass
 				if self.annotation:
 					if math.isnan(x) or math.isnan(y):
-						self.annotation.xytext=(0,0)
+						if hasattr(self.annotation,'xyann'): self.annotation.xyann=(x,y)
+						else: self.annotation.xytext=(0,0)
 						self.annotation.set_text('') # make invisible, place anywhere
 					else:
 						#

@@ -370,7 +370,7 @@ shared_ptr<SpherePack> SpherePack_filtered(const shared_ptr<SpherePack>& sp, con
 	auto pbox=p->aabb();
 	if(recenter && !isinf(pbox.sizes().maxCoeff())){
 		off=pbox.center()-sbox.center();
-		pbox.translate(off);
+		// it is sphere which are shifted by *off* below, so move also sbox here (only)
 		sbox.translate(off);
 	}
 	// do not warn for inifinite predicates, which are always larger than the packing

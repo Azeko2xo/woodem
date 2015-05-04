@@ -186,13 +186,13 @@ def makeTraitInfo(obj,klass,trait):
 			if val.__class__.__module__=='minieigen': tt=':obj:`%s <minieigen:minieigen.%s>`'%(val.__class__.__name__,val.__class__.__name__)
 			else: tt=trait.cxxType
 		if not tt:
-			if trait.cxxType in ('int','bool','Real','long','size_t','ContainerT','PendingContact','list<id_t>','shared_ptr<SpherePack>','list<id_t>','boost_multi_array_real_5','py::object'): tt=trait.cxxType
+			if trait.cxxType in ('int','string','bool','Real','long','size_t','ContainerT','PendingContact','std::vector<PendingContact','list<id_t>','shared_ptr<SpherePack>','list<id_t>','boost_multi_array_real_5','py::object'): tt=trait.cxxType
 		if not tt:
 			l=guessListTypeFromCxxType(klass,trait,warnFail=False)
-			if l: tt=trait.cxxType.replace(l[0].__name__,':obj:`%s <%s.%s>`'%(l[0].__name__,l[0].__module__,l[0].__name__))
+			if l and l[0].__module__!='__builtin__': tt=trait.cxxType.replace(l[0].__name__,':obj:`%s <%s.%s>`'%(l[0].__name__,l[0].__module__,l[0].__name__))
 		if not tt:
 			t=guessInstanceTypeFromCxxType(klass,trait,noneOnFail=True)
-			if t: tt=trait.cxxType.replace(t.__name__,':obj:`%s <%s.%s>`'%(t.__name__,t.__module__,t.__name__))
+			if t and t.__module__!='__builtin__': tt=trait.cxxType.replace(t.__name__,':obj:`%s <%s.%s>`'%(t.__name__,t.__module__,t.__name__))
 		if not tt: tt=trait.cxxType
 		ret.append('type: '+tt)
 	if trait.unit:

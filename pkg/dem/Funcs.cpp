@@ -330,7 +330,7 @@ size_t DemFuncs::radialAxialForce(const Scene* scene, const DemField* dem, int m
 
 	TODO: read color/material, convert to scalar color in Woo
 */
-vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold, Real maxBox, bool readColors, bool flex){
+vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const shared_ptr<Material>& mat, int mask, Real color, Real scale, const Vector3r& shift, const Quaternionr& ori, Real threshold, Real maxBox, bool readColors, bool flex, Real thickness){
 	vector<shared_ptr<Particle>> ret;
 	std::ifstream in(filename,std::ios::in|std::ios::binary);
 	if(!in) throw std::runtime_error("Error opening "+filename+" for reading (STL import).");
@@ -525,7 +525,12 @@ vector<shared_ptr<Particle>> DemFuncs::importSTL(const string& filename, const s
 			nodes[ix]->getData<DemData>().addParRef(par);
 		}
 		facet->color=color; // set per-face color, once this is imported form the binary STL
+		facet->halfThick=thickness/2.;
 		ret.push_back(par);
+	}
+	// compute lumped mass/inertia on nodes
+	if(thickness!=0){
+		for(const auto& n: nodes) n->getData<DemData>().setOriMassInertia(n);
 	}
 	return ret;
 }
