@@ -17,7 +17,7 @@ void Cp2_IceMat_IcePhys::go(const shared_ptr<Material>& m1, const shared_ptr<Mat
 	Cp2_FrictMat_FrictPhys::updateFrictPhys(mat1,mat2,ph,C);
 	// twisting/rolling stiffnesses
 	Vector2r alpha=.5*(mat1.alpha+mat2.alpha);
-	ph.kWR=g.contA*alpha.cwiseProduct(Vector2r(ph.kn,ph.kt));
+	ph.kWR=g.contA*alpha.cwiseProduct(Vector2r(ph.kt,ph.kn));
 	// breakage limits
 	Real cn=.5*(mat1.breakN+mat2.breakN)*(g.lens.sum()/(g.lens[0]/mat1.young+g.lens[1]/mat2.young));
 	Vector3r beta=.5*(mat1.beta+mat2.beta);

@@ -23,8 +23,11 @@ Stiffnesses
 There are 4 stiffness values:
 
 * normal and tangential stiffnesses :math:`k_n` (:obj:`~woo.dem.FrictPhys.kn`) and :math:`k_t` (:obj:`~woo.dem.FrictPhys.kt`) are computed the same as in :ref:`linear_contact_model`.
-* twisting stiffness :math:`k_w=\alpha_w k_n A`, where :math:`\alpha_w` is material parameter and :math:`A` is geometry-dependent :obj:`contact area <woo.dem.L6Geom.contA>`.
-* rolling stiffness :math:`k_r=\alpha_r k_t A`, where :math:`\alpha_r` is material parameter.
+* twisting stiffness :math:`k_w=\alpha_w k_t A`, where :math:`\alpha_w` is material parameter and :math:`A` is geometry-dependent :obj:`contact area <woo.dem.L6Geom.contA>`. 
+
+  .. note:: *Twisting* stiffness is proportional to *tangential* stiffness and *rolling* stiffness is proportional to *normal* stiffness. (This is unlike for limit breakage forces, where normal--twist and tangential--rolling are proportional.)
+
+* rolling stiffness :math:`k_r=\alpha_r k_n A`, where :math:`\alpha_r` is material parameter.
 
 :math:`\alpha_w` and :math:`\alpha_r` are stored together (in this order) as 2-vector in :obj:`IceMat.alpha <woo.dem.IceMat.alpha>`.
 
@@ -133,7 +136,7 @@ Nomenclature
      - --
      - :obj:`IceMat.alpha <woo.dem.IceMat.alpha>`
      - averaged
-     - factors for computing :math:`k_w`, :math:`k_r` from :math:`k_n`, :math:`k_t`
+     - factors for computing :math:`k_w`, :math:`k_r` from :math:`k_t`, :math:`k_n`
    * - :math:`\eps_{bn}`
      - --
      - :obj:`IceMat.breakN <woo.dem.IceMat.breakN>`
