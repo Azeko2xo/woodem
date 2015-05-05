@@ -10,9 +10,9 @@ struct Membrane: public Facet{
 	void setRefConf(); // use the current configuration as the referential one
 	void ensureStiffnessMatrices(const Real& young, const Real& nu, const Real& thickness, bool bending, const Real& bendThickness);
 	void updateNode(); // update local coordinate system
-	void computeNodalDisplacements(); 
+	void computeNodalDisplacements(Real dt, bool rotIncr); 
 	// called by functors to initialize (if necessary) and update
-	void stepUpdate();
+	void stepUpdate(Real dt, bool rotIncr);
 	// called from DynDt for updating internal stiffness for given node
 	void addIntraStiffnesses(const shared_ptr<Node>&, Vector3r& ktrans, Vector3r& krot) const;
 
@@ -42,7 +42,7 @@ struct Membrane: public Facet{
 		,/*ctor*/ createIndex(); \
 		,/*py*/ \
 			.def("setRefConf",&Membrane::setRefConf,"Set the current configuration as the reference one.") \
-			.def("update",&Membrane::stepUpdate,"Update current configuration; create reference configuration if it does not exist.") \
+			.def("update",&Membrane::stepUpdate,(py::arg("dt"),py::arg("rotIncr")=false),"Update current configuration; create reference configuration if it does not exist.") \
 			.def("reset",&Membrane::pyReset,"Reset reference configuration; this forces using the current config as reference when :obj:`update` is called again.")
 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS_CTOR_PY(woo_dem_Membrane__CLASS_BASE_DOC_ATTRS_CTOR_PY);
@@ -61,7 +61,8 @@ struct In2_Membrane_ElastMat: public In2_Facet{
 		((Real,thickness,NaN,,"Thickness for CST stiffness computation; if NaN, try to use the double of :obj:`Facet.halfThick`.")) \
 		((Real,bendThickness,NaN,,"Thickness for CST stiffness computation; if NaN, use :obj:`thickness`.")) \
 		((bool,bending,false,,"Consider also bending stiffness of elements (DKT)")) \
-		((bool,applyBary,false,,"Distribute force according to barycentric coordinate of the contact point; this is done normally with :obj:`bending` enabled, this forces the same also for particles without bending."))
+		((bool,applyBary,false,,"Distribute force according to barycentric coordinate of the contact point; this is done normally with :obj:`bending` enabled, this forces the same also for particles without bending.")) \
+		((bool,rotIncr,false,,"Compute nodal rotation incrementally (by integration of angular velocities) rather than by subtracting from reference rotations (the advantage of incremental is that it is numerically stable even for huge rotations, but perhaps less precise)."))
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_In2_Membrane_ElastMat__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(In2_Membrane_ElastMat);

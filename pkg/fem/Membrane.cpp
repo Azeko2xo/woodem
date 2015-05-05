@@ -17,10 +17,10 @@ WOO_IMPL_LOGGER(Membrane);
 
 
 
-void Membrane::stepUpdate(){
+void Membrane::stepUpdate(Real dt, bool rotIncr){
 	if(!hasRefConf()) setRefConf();
 	updateNode();
-	computeNodalDisplacements();
+	computeNodalDisplacements(dt,rotIncr);
 }
 
 void Membrane::setRefConf(){
@@ -286,7 +286,7 @@ void Membrane::updateNode(){
 	node->ori=ori0*AngleAxisr(atan2(tanTheta3_y,tanTheta3_x),Vector3r::UnitZ());
 };
 
-void Membrane::computeNodalDisplacements(){
+void Membrane::computeNodalDisplacements(Real dt, bool rotIncr){
 	assert(hasRefConf());
 	// supposes node is updated already
 	for(int i:{0,1,2}){
@@ -302,23 +302,31 @@ void Membrane::computeNodalDisplacements(){
 		// displacements
 		uXy.segment<2>(2*i)=xy.head<2>()-refPos.segment<2>(2*i);
 		// rotations
-		AngleAxisr aa(refRot[i].conjugate()*(nodes[i]->ori.conjugate()*node->ori));
-		/* aa sometimes gives angle close to 2π for rotations which are actually small and negative;
-			I posted that question at http://forum.kde.org/viewtopic.php?f=74&t=110854 .
-			Such a result is fixed by conditionally subtracting 2π:
-		*/
-		if(aa.angle()>M_PI) aa.angle()-=2*M_PI;
-		Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
-		// if(aa.angle()>3)
-		if(rot.head<2>().squaredNorm()>3*3) LOG_WARN("Membrane's in-plane rotation in a node is > 3 radians, expect unstability!");
-		phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
-		#ifdef MEMBRANE_DEBUG_ROT
-			AngleAxisr rr(refRot[i]);
-			AngleAxisr cr(nodes[i]->ori.conjugate()*node->ori);
-			LOG_TRACE("node "<<i<<"\n   refRot : "<<rr.axis()<<" !"<<rr.angle()<<"\n   currRot: "<<cr.axis()<<" !"<<cr.angle()<<"\n   diffRot: "<<aa.axis()<<" !"<<aa.angle());
-			drill[i]=rot[2];
-			currRot[i]=nodes[i]->ori.conjugate()*node->ori;
-		#endif
+		if(rotIncr){
+			// incremental
+			Vector3r angVelL=node->glob2loc(nodes[i]->getData<DemData>().angVel); // angular velocity in element coords
+			phiXy.segment<2>(2*i)-=dt*angVelL.head<2>();
+			// throw std::runtime_error("Incremental rotation (In2_ElastMat_Membrane.rotIncr) is not yet implemented properly.");
+		} else {
+			// from total rotation difference
+			AngleAxisr aa(refRot[i].conjugate()*(nodes[i]->ori.conjugate()*node->ori));
+			/* aa sometimes gives angle close to 2π for rotations which are actually small and negative;
+				I posted that question at http://forum.kde.org/viewtopic.php?f=74&t=110854 .
+				Such a result is fixed by conditionally subtracting 2π:
+			*/
+			if(aa.angle()>M_PI) aa.angle()-=2*M_PI;
+			Vector3r rot=Vector3r(aa.angle()*aa.axis()); // rotation vector in local coords
+			// if(aa.angle()>3)
+			if(rot.head<2>().squaredNorm()>3.1*3.1) LOG_WARN("Membrane's in-plane rotation in a node is > 3.1 radians, expect unstability!");
+			phiXy.segment<2>(2*i)=rot.head<2>(); // drilling rotation discarded
+			#ifdef MEMBRANE_DEBUG_ROT
+				AngleAxisr rr(refRot[i]);
+				AngleAxisr cr(nodes[i]->ori.conjugate()*node->ori);
+				LOG_TRACE("node "<<i<<"\n   refRot : "<<rr.axis()<<" !"<<rr.angle()<<"\n   currRot: "<<cr.axis()<<" !"<<cr.angle()<<"\n   diffRot: "<<aa.axis()<<" !"<<aa.angle());
+				drill[i]=rot[2];
+				currRot[i]=nodes[i]->ori.conjugate()*node->ori;
+			#endif
+		}
 	}
 };
 
@@ -338,7 +346,7 @@ void In2_Membrane_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Mat
 
 	if(!particle->contacts.empty()) distributeForces(particle,sh->cast<Facet>(),/*bary*/bending||applyBary);
 
-	ff.stepUpdate();
+	ff.stepUpdate(scene->dt,rotIncr);
 	// assemble local stiffness matrix, in case it does not exist yet
 	ff.ensureStiffnessMatrices(particle->material->cast<ElastMat>().young,nu,thickness,/*bending*/bending,bendThickness);
 	// compute nodal forces response here
