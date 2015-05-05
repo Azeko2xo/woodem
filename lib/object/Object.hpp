@@ -409,7 +409,7 @@ template<> struct _SerializeMaybe<false>{
 	static _ATTR_TYP(z) _ATTR_NAM(z); \
 	typedef std::remove_reference<decltype(_ATTR_TRAIT(thisClass,z))>::type _ATTR_TRAIT_TYPE(thisClass,z); \
 	static _ATTR_TRAIT_TYPE(thisClass,z)& _ATTR_TRAIT_GET(thisClass,z)(){ static _ATTR_TRAIT_TYPE(thisClass,z) _tmp=_ATTR_TRAIT(thisClass,z).static_(); return _tmp; }
-#define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_TYP(z)(_ATTR_INI(z)); cerr<<BOOST_PP_STRINGIZE(thisClass)<<":"<< BOOST_PP_STRINGIZE(_ATTR_NAM(z)) "=" BOOST_PP_STRINGIZE(_ATTR_TYP(z)) "(" BOOST_PP_STRINGIZE(_ATTR_INI(z)) ")"<<endl;
+#define _STATATTR_INITIALIZE(x,thisClass,z) thisClass::_ATTR_NAM(z)=_ATTR_TYP(z)(_ATTR_INI(z)); /*cerr<<BOOST_PP_STRINGIZE(thisClass)<<":"<< BOOST_PP_STRINGIZE(_ATTR_NAM(z)) "=" BOOST_PP_STRINGIZE(_ATTR_TYP(z)) "(" BOOST_PP_STRINGIZE(_ATTR_INI(z)) ")"<<endl;*/
 
 #define _STATCLASS_PY_REGISTER_CLASS(thisClass,baseClass,classTrait,attrs,pyExtra)\
 	void pyRegisterClass() WOO_CXX11_OVERRIDE { checkPyClassRegistersItself(#thisClass); initSetStaticAttributesValue(); WOO_SET_DOCSTRING_OPTS; \

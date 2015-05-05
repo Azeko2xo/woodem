@@ -10,23 +10,15 @@ S=woo.master.scene=Scene(fields=[DemField(gravity=(0,0,-10),loneMask=0)],dtSafet
 S.engines=DemField.minimalEngines(damping=.5)+[IntraForce([In2_Tet4_ElastMat(),In2_Facet(),In2_Membrane_FrictMat(bending=True)])]
 
 m0=woo.utils.defaultMaterial()
+m1=m0.deepcopy()
 m0.young*=5
+m0.density=1e4 # make it faster
 mask=0b001
 mask2=0b011
-S.dem.par.add([
-	# InfCylinder.make((0,0,0),radius=.5,axis=1,mat=m0,mask=mask,glAB=(-4,4)),
-	#InfCylinder.make((2,0,0),radius=.5,axis=1,mat=m0,mask=mask,glAB=(-4,4)),
-	#Wall.make((0,0,-1.),sense=1,axis=2,mat=m0,mask=mask),
-])
-cc=woo.triangulated.cylinder(Vector3(-1,0,3),Vector3(9,0,3),radius=1.5,div=30,axDiv=-1,halfThick=.1,flex=True,fixed=False,wire=False,mat=m0,mask=mask2)
-# TODO: lumped mass and inertia autocomputed
-for c in cc:
-	for n in c.nodes:
-		n.dem.mass=500
-		n.dem.inertia=(1,1,1)
+
+cc=woo.triangulated.cylinder(Vector3(-1,0,3),Vector3(9,0,3),radius=1.5,div=30,axDiv=-1,halfThick=.07,flex=True,fixed=False,wire=False,mat=m0,mask=mask2)
 S.dem.par.add(cc)
 
-m1=m0.deepcopy()
 nn,pp=woo.utils.importNmesh('tube.beam-long.nmesh',mat=m1,mask=mask,trsf=lambda v: v+Vector3(4,-4,-.5),dem=S.dem,surfHalfThick=0.05)
 for n in nn:
 	if abs(n.pos[1])>3.9: n.dem.blocked='xyzXYZ'
@@ -37,6 +29,9 @@ for p in pp:
 S.lab.collider.noBoundOk=True
 
 S.dem.collectNodes()
+for n in S.dem.nodes: DemData.setOriMassInertia(n)
+
+
 try:
 	from woo.gl import *
 	Gl1_Membrane(refConf=False,slices=5,uScale=0,relPhi=0)
