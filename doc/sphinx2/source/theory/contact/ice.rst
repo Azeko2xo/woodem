@@ -25,11 +25,27 @@ There are 4 stiffness values:
 * normal and tangential stiffnesses :math:`k_n` (:obj:`~woo.dem.FrictPhys.kn`) and :math:`k_t` (:obj:`~woo.dem.FrictPhys.kt`) are computed the same as in :ref:`linear_contact_model`.
 * twisting stiffness :math:`k_w=\alpha_w k_t A`, where :math:`\alpha_w` is material parameter and :math:`A` is geometry-dependent :obj:`contact area <woo.dem.L6Geom.contA>`. 
 
-  .. note:: *Twisting* stiffness is proportional to *tangential* stiffness and *rolling* stiffness is proportional to *normal* stiffness. (This is unlike for limit breakage forces, where normal--twist and tangential--rolling are proportional.)
-
 * rolling stiffness :math:`k_r=\alpha_r k_n A`, where :math:`\alpha_r` is material parameter.
 
 :math:`\alpha_w` and :math:`\alpha_r` are stored together (in this order) as 2-vector in :obj:`IceMat.alpha <woo.dem.IceMat.alpha>`.
+
+
+.. note:: *Twisting* stiffness is proportional to *tangential* stiffness and *rolling* stiffness is proportional to *normal* stiffness. (This is unlike for limit breakage forces, where normal--twist and tangential--rolling are proportional.) The rationale is that analogy with isotropic circular beam, where the rescpective stiffnesses are related to the same moduli (Young's modulus :math:`E` and shear modulus :math:`G`)
+
+  .. math::
+    :nowrap:
+
+    \begin{align*}
+       k_n&=\frac{EA}{L}, & k_t&=\frac{GA}{L}, \\
+       k_w&=\frac{GJ}{L}, & k_r&=\frac{EI}{L}
+    \end{align*}
+
+  with :math:`A=\pi R^2`, :math:`J=\frac{\pi R^4}{2}`, :math:`I=\frac{\pi R^4}{4}`, :math:`G=\frac{E}{2(1+\nu)}`. Thus, to emulate isotropic beam on the contact, the coefficients would be
+
+  .. math::
+     \alpha_w=\frac{1}{2\pi},
+
+     \alpha_r=\frac{1}{4\pi}.
 
 Bonds
 ------
