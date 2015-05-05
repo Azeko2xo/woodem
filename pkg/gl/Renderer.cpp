@@ -70,7 +70,7 @@ bool Renderer::ranges;
 Vector3r Renderer::iniUp;
 Vector3r Renderer::iniViewDir;
 
-int Renderer::showTime;
+int Renderer::showTime=TIME_STEP|TIME_VIRT;
 bool Renderer::showDate;
 Vector3r Renderer::dateColor;
 Vector3r Renderer::virtColor;
@@ -114,8 +114,10 @@ void Renderer::init(){
 		glutInitDone=true;
 	}
 	// this is not initialized properly for some reason?!
-	showTime=TIME_STEP|TIME_VIRT;
-	dispScale=Vector3r(10,10,10);
+	//showTime=TIME_STEP|TIME_VIRT;
+	//cerr<<"dispScale="<<dispScale.transpose()<<endl;
+	//if(dispScale==Vector3r::Ones()) dispScale=Vector3r(10,10,10);
+
 	initDone=true;
 }
 

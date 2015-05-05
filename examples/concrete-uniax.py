@@ -79,7 +79,7 @@ S.one()
 for f in S.lab.collider.boundDispatcher.functors+S.lab.contactLoop.geoDisp.functors:
 	if hasattr(f,'distFactor'): f.distFactor=1.
 # this is the initial state
-rr=woo.gl.Renderer(dispScale=(10000,10000,10000))
+woo.gl.Renderer(dispScale=(10000,10000,10000))
 woo.gl.Gl1_DemField.colorBy='ref. displacement'
 woo.gl.Gl1_DemField.vecAxis='xy'
 S.plot.plots={'eps':('sig',),'u':('Ftop','Fbot')}

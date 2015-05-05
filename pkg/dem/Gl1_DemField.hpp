@@ -79,7 +79,7 @@ struct Gl1_DemField: public GlFieldFunctor{
 		((bool,updateRefPos,false,,"Update reference positions of all nodes in the next step"))
 		((int,guiEvery,100,,"Process GUI events once every *guiEvery* objects are painted, to keep the ui responsive. Set to 0 to make rendering blocking."))
 		, /*ctor*/
-			initAllRanges();
+			/*initAllRanges();*/
 		, /*py*/
 			;
 			_classObj.attr("glyphKeep")=(int)Gl1_DemField::GLYPH_KEEP;
@@ -114,6 +114,8 @@ struct Gl1_DemField: public GlFieldFunctor{
 			_classObj.attr("cNodeLine")=(int)Gl1_DemField::CNODE_LINE;
 			_classObj.attr("cNodeNode")=(int)Gl1_DemField::CNODE_NODE;
 			_classObj.attr("cNodePotLine")=(int)Gl1_DemField::CNODE_POTLINE;
+			// not related to python, but done only once
+			initAllRanges();
 	);
 };
 WOO_REGISTER_OBJECT(Gl1_DemField);
