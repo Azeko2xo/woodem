@@ -63,6 +63,7 @@ shared_ptr<Shape> RawShape::toShape(Real density, Real scale) const {
 	vector<shared_ptr<Node>> nodes; // initially empty
 	ret->setFromRaw(center,radius,nodes,raw);
 	if(scale!=1.) ret->applyScale(scale);
+	if(nodes.empty()) throw std::runtime_error("Programming error: RawShape::toShape: "+className+"::setFromRaw did not set any nodes.");
 
 	if(!isnan(density)){
 		for(const auto& n: nodes){
@@ -71,7 +72,7 @@ shared_ptr<Shape> RawShape::toShape(Real density, Real scale) const {
 				// to avoid crashes if renderer must resize the node's data array and reallocates it while other thread accesses those data
 				n->setData<GlData>(make_shared<GlData>());
 			#endif
-			n->getData<DemData>().setOriMassInertia(n);
+			// n->getData<DemData>().setOriMassInertia(n);
 		}
 		// ret->updateMassInertia(density);
 	}
@@ -132,6 +133,7 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 	// single mononodal particle: copy things over
 	if(shsh.size()==1 && shsh[0]->nodes.size()==1){
 		const auto& sh(shsh[0]);
+		sh->updateMassInertia(1.); // unit density
 		pos=sh->nodes[0]->pos;
 		ori=sh->nodes[0]->ori;
 		// with unit density, volume==mass
@@ -147,6 +149,7 @@ void RawShapeClump::recompute(int _div, bool failOk/* =false */, bool fastOnly/*
 	if(_div<=0){
 		// non-intersecting: Steiner's theorem over all nodes
 		for(const auto& sh: shsh){
+			sh->updateMassInertia(1.); // unit density
 			// const Real& r(radii[i]); const Vector3r& x(centers[i]);
 			for(const auto& n: sh->nodes){
 				const Real& v=n->getData<DemData>().mass;
@@ -208,6 +211,7 @@ std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> RawShapeClump:
 		par.push_back(p);
 		for(const auto& n: p->shape->nodes){
 			n->getData<DemData>().parRef.push_back(p.get());
+			DemData::setOriMassInertia(n); // now the particle's in, recompute
 			nNodes++;
 		}
 	}
