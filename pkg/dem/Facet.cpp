@@ -41,17 +41,10 @@ void Facet::lumpMassInertia(const shared_ptr<Node>& n, Real density, Real& mass,
 	// midpoint local coords
 	Vector3r vv[2]; for(int i:{1,2}) vv[i-1]=.5*n->glob2loc(nodes[(ix+i)%3]->pos);
 	Vector3r C=n->glob2loc(getCentroid());
-	//cerr<<ix<<"; "<<vv[0].transpose()<<"; "<<vv[1].transpose()<<"; "<<C.transpose()<<endl;
-	//cerr<<woo::Volumetric::triangleInertia(Vector3r::Zero(),vv[0],vv[1])<<endl;	
-	//cerr<<woo::Volumetric::triangleInertia(vv[0],vv[1],C)<<endl;
 	I+=density*(2*halfThick)*woo::Volumetric::triangleInertia(Vector3r::Zero(),vv[0],vv[1]);
-	//cerr<<I<<endl;
 	I+=density*(2*halfThick)*woo::Volumetric::triangleInertia(vv[0],vv[1],C);
-	//cerr<<I<<endl;
 	mass+=density*(2*halfThick)*woo::Volumetric::triangleArea(Vector3r::Zero(),vv[0],vv[1]);
-	//cerr<<mass<<endl;
 	mass+=density*(2*halfThick)*woo::Volumetric::triangleArea(vv[0],vv[1],C);
-	//cerr<<mass<<endl;
 }
 
 
@@ -237,23 +230,6 @@ void In2_Facet::distributeForces(const shared_ptr<Particle>& particle, const Fac
 }
 
 
-#if 0
-void In2_Facet_ElastMat::go(const shared_ptr<Shape>& sh, const shared_ptr<Material>& m, const shared_ptr<Particle>& particle){
-	// nothing to do
-	auto& f=sh->cast<Facet>();
-	for(const auto& I: particle->contacts){
-		const shared_ptr<Contact>& C(I.second); if(!C->isReal()) continue;
-		Vector3r F,T,xc;
-		for(int i:{0,1,2}){
-			std::tie(F,T,xc)=C->getForceTorqueBranch(particle,/*nodeI*/i,scene);
-			F/=3.; T/=3.;
-			f.nodes[i]->getData<DemData>().addForceTorque(F,xc.cross(F)+T);
-		}
-	}
-};
-#endif
-
-
 WOO_IMPL_LOGGER(Cg2_Facet_Sphere_L6Geom);
 
 bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<Shape>& sh2, const Vector3r& shift2, const bool& force, const shared_ptr<Contact>& C){
@@ -307,7 +283,7 @@ bool Cg2_Facet_Sphere_L6Geom::go(const shared_ptr<Shape>& sh1, const shared_ptr<
 	#endif
 	const DemData& dyn2(s.nodes[0]->getData<DemData>()); // sphere
 	// check if this will work when contact point == pseudo-position of the facet
-	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,f.halfThick,s.radius);
+	handleSpheresLikeContact(C,contPt,linVel,angVel,sC,dyn2.vel,dyn2.angVel,normal,contPt,uN,max(f.halfThick,s.radius),s.radius);
 	return true;
 };
 

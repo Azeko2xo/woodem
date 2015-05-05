@@ -396,7 +396,7 @@ bool Cg2_Facet_Capsule_L6Geom::go(const shared_ptr<Shape>& s1, const shared_ptr<
 
 	Vector3r linVel,angVel;
 	std::tie(linVel,angVel)=facet.interpolatePtLinAngVel(contPt);
-	handleSpheresLikeContact(C,contPt,linVel,angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,/*r1*/facet.halfThick,cap.radius);
+	handleSpheresLikeContact(C,contPt,linVel,angVel,capPos,capDyn.vel,capDyn.angVel,normal,contPt,uN,/*r1*/max(facet.halfThick,cap.radius),cap.radius);
 	return true;
 }
 
