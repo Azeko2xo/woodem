@@ -81,4 +81,19 @@ def quadrilateral(A,B,C,D,size=0,div=Vector2i(0,0),**kw):
 	pts=[[A+ac*AC+ab*(B+ac*BD-(A+ac*AC)).normalized() for ac in aacc] for ab in aabb]
 	return woo.pack.gtsSurface2Facets(woo.pack.sweptPolylines2gtsSurface(pts),**kw)
 
-	
+def box(dim,center,**kw):
+	'''Return box created from facets. ``**kw`` args are passed to :obj:`woo.dem.Facet.make`. If facets have thickness, node masses and inertia will be computed automatically.
+
+:param dim: dimensions along x, y, z axes;
+:param center: a :obj:`minieigen:Vector3` (box aligned with global axes) or :obj:`woo.core.Node` (local coordinate system) giving the center of the box;
+'''
+	if isinstance(center,Vector3): c=woo.core.Node(pos=center)
+	else: c=center
+	nn=[woo.core.Node(pos=c.loc2glob(Vector3(.5*sgn[0]*dim[0],.5*sgn[1]*dim[1],.5*sgn[2]*dim[2]))) for sgn in ((-1,-1,-1),(1,-1,-1),(1,1,-1),(-1,1,-1),(-1,-1,1),(1,-1,1),(1,1,1),(-1,1,1))]
+	indices=[(0,2,1),(0,3,2),(0,1,5),(0,5,4),(0,4,3),(3,4,7),(1,2,6),(1,6,5),(2,3,7),(2,7,6),(4,5,6),(4,6,7)]
+	ff=[woo.dem.Facet.make((nn[i[0]],nn[i[1]],nn[i[2]]),**kw) for i in indices]
+	if ff[0].shape.halfThick>0:
+		for n in nn: woo.dem.DemData.setOriMassInertia(n)
+	return ff
+
+

@@ -120,17 +120,17 @@ There are two basic rules:
 
 2. If a common bit is contained in :obj:`DemField.loneMask <woo.dem.DemField.loneMask>`, the particles will not collide. This rule is to avoid collisions of particles where it is meaningless, such as facets in a mesh between themselves. With meshes, the number of spurious "contacts" can be **very high** (thousands) slowing down the simulation unnecessarily.
 
-Mask bits can be further used for marking particles (e.g. with :obj:`~woo.dem.BoxDeleter`, when :obj:`~woo.dem.BoxDeleter.markMask` is set) in arbitrary ways.
+Mask bits can be further used for marking particles (e.g. with :obj:`~woo.dem.BoxOutlet`, when :obj:`~woo.dem.BoxOutlet.markMask` is set) in arbitrary ways.
 
 **Default values** of mask are different for different particles:
 
-1. Particles which usually move (:obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Ellipsoid`, :obj:`~woo.dem.Capsule`) have the mask set to ``0b0101`` by default (when created using the :obj:`Sphere.make <woo.dem.Sphere.make>` etc functions). This is also the default value for :obj:`ParticleFactory.mask <woo.dem.ParticleFactory.mask>` (particles created during the simulation; treated later)
+1. Particles which usually move (:obj:`~woo.dem.Sphere`, :obj:`~woo.dem.Ellipsoid`, :obj:`~woo.dem.Capsule`) have the mask set to :obj:`DemField.defaultMovableMask` (``0b0101``) by default (when created using the :obj:`Sphere.make <woo.dem.Sphere.make>` etc functions). This (called :obj:`DemField.defaultInletMask`) is also the default value for :obj:`ParticleInlet.mask <woo.dem.ParticleFactory.mask>` (particles created during the simulation; treated later)
 
-2. Particles usually acting as the boundary (:obj:`~woo.dem.Facet`, :obj:`~woo.dem.InfCylinder`, :obj:`~woo.dem.Wall`) set the mask to ``0b0011`` by default.
+2. Particles usually acting as the boundary (:obj:`~woo.dem.Facet`, :obj:`~woo.fem.Membrane`, :obj:`~woo.dem.InfCylinder`, :obj:`~woo.dem.Wall`) set the mask to :obj:`DemField.defaultBoundaryMask` (``0b0011``) by default.
 
-3. :obj:`DemField.loneMask <woo.dem.DemField.loneMask>` default to ``0b0010``.
+3. :obj:`DemField.loneMask <woo.dem.DemField.loneMask>` default to :obj:`DemField.defaultLoneMask` (``0b0010``).
 
-4. :obj:`BoxDeleter.mask <woo.dem.BoxDeleter.mask>` defaults to ``0b0100`` (delting particles is treated in detail later).
+4. :obj:`BoxOutlet.mask <woo.dem.BoxOutlet.mask>` defaults to :obj:`DemField.defaultOutletMask` (``0b0100``) (delting particles is treated in detail later).
 
 This means that
 

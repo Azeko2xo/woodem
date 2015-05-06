@@ -577,6 +577,17 @@ void DemField::selfTest(){
 				[&n](const shared_ptr<Node>& a){return a.get()==n.get();}
 			)==p->shape->nodes.end()) throw std::logic_error("DemField.nodes["+to_string(i)+"].dem.parRef["+to_string(j)+"].shape.nodes does not contain DemField.nodes["+to_string(i)+"] (the node back-references the particle, but the particle does not reference the node).");
 		}
+		// physics checks for the node
+		dyn.selfTest(n,"DemField.nodes["+to_string(i)+"].dem");
 	}
 }
 
+
+void DemData::selfTest(const shared_ptr<Node>& n, const string& prefix) const {
+	if(!n->hasData<DemData>()) throw std::logic_error(prefix+": node does not have DemData attached (programming error).");
+	if(n->getDataPtr<DemData>().get()!=this) throw std::logic_error(prefix+": node does not have "+this->pyStr()+" as DemData, has "+n->getData<DemData>().pyStr()+" (programming error).");
+	if(!isBlockedAllTrans() && !isClumped() && !(mass>0)) throw std::runtime_error(prefix+".mass="+to_string(mass)+" is non-positive, but not all translational DoFs are blocked (and the node is not clumped).");
+	for(int ax:{0,1,2}){
+		if(!isBlockedAxisDOF(ax,/*rot*/true) && !isClumped() && !(inertia[ax]>0)) throw std::runtime_error(prefix+".inertia["+to_string(ax)+"]="+to_string(inertia[ax])+" is non-positive, but the corresponding rotational DoF is not blocked (and the node is not clumped).");
+	}
+}

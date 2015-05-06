@@ -272,7 +272,6 @@ class ContactModelSelector(woo.core.Object,woo.pyderived.PyWooObject):
 			return [woo.dem.Cp2_FrictMat_FrictPhys()],[law]
 		elif self.name=='pellet':
 			law=woo.dem.Law2_L6Geom_PelletPhys_Pellet(plastSplit=self.plastSplit,confSigma=self.pelletConf[0],confRefRad=self.pelletConf[1],confExp=self.pelletConf[2],thinRate=self.pelletThin[0],thinRelRMin=self.pelletThin[1],thinExp=self.pelletThin[2])
-			if not math.isnan(self.pelletYf1Params[0]): law.yieldFunc,law.yf1_beta,law.yf1_w=1,self.pelletYf1Params[0],self.pelletYf1Params[1]
 			return [woo.dem.Cp2_PelletMat_PelletPhys()],[law]
 		elif self.name=='Hertz':
 			return [woo.dem.Cp2_FrictMat_HertzPhys(poisson=self.poisson,alpha=0.,gamma=0.,en=self.restitution)],[woo.dem.Law2_L6Geom_HertzPhys_DMT()]

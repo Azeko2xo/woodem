@@ -133,6 +133,7 @@ void PelletAgglomerator::run(){
 	// loop over all source particles, and loop over all contacts of each of them
 	if(isnan(massIncPerRad)) throw std::runtime_error("PalletAgglomerator.massIncPerRad==NaN (must be specified)");
 	if(dampHalfLife<0) dampHalfLife*=-scene->dt;
+	Real sumDMass=0.;
 	Real lambda=(dampHalfLife==0 || isnan(dampHalfLife))?0:(log(2)/dampHalfLife);
 	for(const shared_ptr<Particle>& src: agglomSrcs){
 		for(const auto& idCon: src->contacts){
@@ -148,6 +149,7 @@ void PelletAgglomerator::run(){
 			// radius change
 			// angVel is local already
 			Real dMass=c->geom->cast<L6Geom>().angVel.tail<2>().norm()*scene->dt*massIncPerRad;
+			sumDMass+=dMass;
 			Real newVol=(4/3.)*M_PI*pow(*radius,3)+dMass/other->material->density;
 			*radius=cbrt(3*newVol/(4*M_PI));
 			other->shape->updateMassInertia(other->material->density);
@@ -165,4 +167,6 @@ void PelletAgglomerator::run(){
 			pms.cumAgglomAngle+=c->geom->cast<L6Geom>().angVel.tail<2>().norm()*scene->dt;
 		}
 	}
+	currRate=(1-currRateSmooth)*currRate+currRateSmooth*(sumDMass/scene->dt);
+	mass+=sumDMass;
 };

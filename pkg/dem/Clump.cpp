@@ -185,10 +185,17 @@ std::tuple<vector<shared_ptr<Node>>,vector<shared_ptr<Particle>>> SphereClumpGeo
 shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared_ptr<Node> centralNode, bool intersecting){
 	if(nn.empty()) throw std::runtime_error("ClumpData::makeClump: 0 nodes.");
 	/* TODO? check that nodes are unique */
-	auto clump=make_shared<ClumpData>();
-	clump->setClump();
+	shared_ptr<ClumpData> clump;
 	auto cNode=(centralNode?centralNode:make_shared<Node>());
-	cNode->setData<DemData>(clump);
+	if(!centralNode || !centralNode->hasData<DemData>()){
+		clump=make_shared<ClumpData>();
+		clump->setClump();
+		cNode->setData<DemData>(clump);
+	}else{
+		if(!centralNode->getData<DemData>().isA<ClumpData>()) throw std::runtime_error("ClumpData::makeClump: centralNode has DemData attached, but must have a ClumpData attached instead.");
+		clump=static_pointer_cast<ClumpData>(centralNode->getDataPtr<DemData>());
+		clump->setClump();
+	}
 
 	size_t N=nn.size();
 	if(N==1){
@@ -231,10 +238,9 @@ shared_ptr<Node> ClumpData::makeClump(const vector<shared_ptr<Node>>& nn, shared
 		clump->equivRad=NaN;
 		// do not touch clump->mass or clump->inertia here
 		// if centralNode was given, it is user-provided
-		// if not, it is at its defaults, which are zeros
-		// block all DOFs in any case
-		clump->setBlockedAll();
 	}
+	// block massless nodes (unless node was given by the user)
+	if(!centralNode && !(clump->mass>0)) clump->setBlockedAll();
 
 	clump->nodes.reserve(N); clump->relPos.reserve(N); clump->relOri.reserve(N);
 	for(size_t i=0; i<N; i++){

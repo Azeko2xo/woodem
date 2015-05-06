@@ -90,7 +90,7 @@ struct Law2_L6Geom_PelletPhys_Pellet: public LawFunctor{
 	static Real adhesionForce       (Real uN, Real uNPl, Real ka){ return -ka*uNPl-4*(-ka/uNPl)*pow(uN-.5*uNPl,2); }
 
 	#define woo_dem_Law2_L6Geom_PelletPhys_Pellet__CLASS_BASE_DOC_ATTRS_PY \
-		Law2_L6Geom_PelletPhys_Pellet,LawFunctor,"Contact law with friction and plasticity in compression, designed for iron ore pellet behavior. See :ref:`pellet-contact-model` for details.", \
+		Law2_L6Geom_PelletPhys_Pellet,LawFunctor,"Contact law with friction and plasticity in compression, designed for  pellet behavior. See :ref:`pellet-contact-model` for details.", \
 		((Real,thinRate,0,,"The amount of reducing particle radius (:math:`\\theta_t`), relative to plastic deformation increment (non-positive to disable thinning)")) \
 		((Real,thinRelRMin,.7,,"Minimum radius reachable with sphere thinning at plastic deformation, relative to initial particle size (:math:`r_{\\min}^{\\mathrm{rel}}`)")) \
 		((Real,thinExp,-1,,"Exponent for reducing the rate of thinning as the minimum radius is being approached (:math:`\\gamma_t`)")) \
@@ -128,7 +128,10 @@ struct PelletAgglomerator: public Engine{
 		PelletAgglomerator,Engine,"Compute agglomeration of pellets due to contact some special particles, or wearing due to impacts (only applies to particles with :obj:`PelletMat`.", \
 		((vector<shared_ptr<Particle>>,agglomSrcs,,,"Sources of agglomerating mass; particles in contact with this source will have their radius increased based on their relative angular velocity.")) \
 		((Real,massIncPerRad,NaN,,"Increase of sphere mass per one radian of rolling (radius is increased in such way that mass increase is satisfied).")) \
-		((Real,dampHalfLife,-10000,,"Half-life for rotation damping (includes both rolling and twist); if negative, relative to the (initial) :obj:`woo.core.Scene.dt`; zero deactivates damping. Half-life is $t_{1/.2}=\\frac{\\ln 2}{\\lambda}$ where $\\lambda$ is decay coefficient applied as $\\d\\omega=-\\lambda\\omega$ (see http://en.wikipedia.org/wiki/Exponential_decay for details)."))
+		((Real,dampHalfLife,-10000,,"Half-life for rotation damping (includes both rolling and twist); if negative, relative to the (initial) :obj:`woo.core.Scene.dt`; zero deactivates damping. Half-life is $t_{1/.2}=\\frac{\\ln 2}{\\lambda}$ where $\\lambda$ is decay coefficient applied as $\\d\\omega=-\\lambda\\omega$ (see http://en.wikipedia.org/wiki/Exponential_decay for details).")) \
+		((Real,currRate,0,,"Current rate of mass increase due to agglomeration.")) \
+		((Real,currRateSmooth,.001,,"Smoothing coefficient for currRate ∈〈0,1〉 (should be rather low, since this engine runs at every step).")) \
+		((Real,mass,0,,"Total cumulative mass increase due to agglomeration.")) 
 	WOO_DECL__CLASS_BASE_DOC_ATTRS(woo_dem_PelletAgglomerator__CLASS_BASE_DOC_ATTRS);
 };
 WOO_REGISTER_OBJECT(PelletAgglomerator);

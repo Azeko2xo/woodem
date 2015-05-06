@@ -192,9 +192,13 @@ public:
 	//! Setter of blocked from string ('xXZ' → DOF_X | DOR_RX | DOF_RZ)
 	void blocked_vec_set(const std::string& dofs);
 
+	// called from DemField.selfTest for every node in DemField
+	virtual void selfTest(const shared_ptr<Node>& n, const string& prefix) const;
+
 	bool isBlockedNone() const { return (flags&DOF_ALL)==DOF_NONE; }
 	void setBlockedNone() { flags&=~DOF_ALL; }
 	bool isBlockedAll()  const { return (flags&DOF_ALL)==DOF_ALL; }
+	bool isBlockedAllTrans()  const { return (flags&DOF_XYZ)==DOF_XYZ; }
 	bool isBlockedAllRot()  const { return (flags&DOF_RXRYRZ)==DOF_RXRYRZ; }
 	void setBlockedAll() { flags|=DOF_ALL; }
 	bool isBlockedAxisDOF(int axis, bool rot) const { return (flags & axisDOF(axis,rot)); }
@@ -303,7 +307,7 @@ struct DemField: public Field{
 		defaultBoundaryMask=BOOST_BINARY(0011),
 		defaultLoneMask    =BOOST_BINARY(0010),
 		defaultInletMask   =BOOST_BINARY(0101),
-		defaultOutletMask =BOOST_BINARY(0100)
+		defaultOutletMask  =BOOST_BINARY(0100)
 	};
 
 	//template<> bool sceneHasField<DemField>() const;
