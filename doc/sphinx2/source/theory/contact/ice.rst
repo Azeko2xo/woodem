@@ -79,8 +79,8 @@ Cohesion values are only useful for senses which are both bonded and breakable, 
    \begin{align*}
       F_{n}& > F_{nb},         & F_{nb}&=c_n A, \\
       |\vec{F}_{t}|& > F_{tb}, & F_{tb}&=\beta_t F_{nb}=\beta_t c_n A, \\
-      |T_{w}|& > T_{wb},       & T_{wb}&=\beta_w F_{nb}A^{\frac{1}{2}}=\beta_w c_n A^{\frac{3}{2}}, \\
-      |\vec{T}_{b}|& > T_{rb}, & T_{rb}&=\beta_r F_{tb}A^{\frac{1}{2}}=\beta_r \beta_t c_n A^{\frac{3}{2}}.
+      |T_{w}|& > T_{wb},       & T_{wb}&=\beta_w F_{nb}A^{\frac{1}{2}}=\beta_w \beta_t c_n A^{\frac{3}{2}}, \\
+      |\vec{T}_{b}|& > T_{rb}, & T_{rb}&=\beta_r F_{tb}A^{\frac{1}{2}}=\beta_r c_n A^{\frac{3}{2}}.
    \end{align*}
 
 Note that there is no absolute value in the first equation, as there is no breakage in compression (:math:`F_n<0`).
